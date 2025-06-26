@@ -1,21 +1,21 @@
 ColibreFilepaths:
-  simPath: "/cosma8/data/dp004/colibre/Runs/{simName}" # Path to COLIBRE simulation
-  sampleFolder: "/cosma/home/do019/dc-gebe1/" # Folder where the galaxy sample .txt files will be stored
-  storeParticlesPath: "/cosma/home/do019/dc-gebe1/" # Folder where the COLIBRE particle .txt files will be stored
+  simPath: '/cosma8/data/dp004/colibre/Runs/{simName}' # Path to COLIBRE simulation
+  sampleFolder: '/cosma/home/do019/dc-gebe1/' # Folder where the galaxy sample .txt files will be stored
+  storeParticlesPath: '/cosma/home/do019/dc-gebe1/' # Folder where the COLIBRE particle .txt files will be stored
 
-  catalogueFile: "{simPath}/SOAP/halo_properties_{snap_nr:04d}.hdf5"
+  catalogueFile: '{simPath}/SOAP/halo_properties_{snap_nr:04d}.hdf5'
 
   # If the snapshots are distributed
-  virtualSnapshotFile: "{simPath}/SOAP/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5"
+  virtualSnapshotFile: '{simPath}/SOAP/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5'
 
   # If not distributed you need to provide the membership and snapshot information separately
-  snapshotFile: "{simPath}/snapshots/colibre_{snap_nr:04d}.hdf5"
-  membershipFile: "{simPath}/SOAP/membership_{snap_nr:04d}.hdf5"
+  snapshotFile: '{simPath}/snapshots/colibre_{snap_nr:04d}.hdf5'
+  membershipFile: '{simPath}/SOAP/membership_{snap_nr:04d}.hdf5'
 
 SkirtFilepaths:
-  skiFilepath: "/Users/agebek/Projects/Colibre/colibre-skirt/template_v{skifileversion}.ski" # The path to the ski file
-  sampleFolder: "/Users/agebek/Downloads/TESTING/" # Folder where the galaxy sample .txt files are stored (for SKIRT run)
-  storeParticlesPath: "/Users/agebek/Downloads/TESTING/particleData/" # Folder where the .txt particle files are stored (for SKIRT run)
+  skiFilepath: '/Users/agebek/Projects/Colibre/colibre-skirt/template_v{skifileversion}.ski' # The path to the ski file
+  sampleFolder: '/Users/agebek/Downloads/TESTING/' # Folder where the galaxy sample .txt files are stored (for SKIRT run)
+  storeParticlesPath: '/Users/agebek/Downloads/TESTING/particleData/' # Folder where the .txt particle files are stored (for SKIRT run)
   SKIRTinputFilePath: '/Users/agebek/Downloads/TESTING/SKIRTinputFiles/' # Path where the SKIRT input files will be stored
   SKIRToutputFilePath: '/Users/agebek/Downloads/TESTING/SKIRToutputFiles/' # Path where the SKIRT output files will be stored
 

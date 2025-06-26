@@ -64,28 +64,35 @@ simPath = params['ColibreFilepaths']['simPath'].format(simName=simName)
 sampleFolder = params['ColibreFilepaths']['sampleFolder'].format(simPath=simPath)
 storeParticlesPath = params['ColibreFilepaths']['storeParticlesPath'].format(simPath=simPath) # Folder where the .txt particle files are stored
 
+z_list = np.loadtxt(simPath + '/output_list.txt', delimiter = ',', usecols = 0)     # Load the redshifts of the available snapshots
 
 gas_header = 'Column 1: x (pc)\n' + \
     'Column 2: y (pc)\n' + \
     'Column 3: z (pc)\n' + \
     'Column 4: smoothing length (pc)\n' + \
     'Column 5: metallicity (1)\n' + \
-    'Column 6: instantaneous star formation rate (Msun/yr)\n' + \
-    'Column 7: star formation rate averaged over 10 Myr (Msun/yr)\n' + \
-    'Column 8: dust mass large graphite (Msun)\n' + \
-    'Column 9: dust mass large Mg silicates (Msun)\n' + \
-    'Column 10: dust mass large Fe silicates (Msun)\n' + \
-    'Column 11: dust mass small graphite (Msun)\n' + \
-    'Column 12: dust mass small Mg silicates (Msun)\n' + \
-    'Column 13: dust mass small Fe silicates (Msun)\n'
+    'Column 6: temperature (K)\n' + \
+    'Column 7: mass density (Msun/pc3)\n' + \
+    'Column 8: mass (Msun)\n' + \
+    'Column 9: instantaneous star formation rate (Msun/yr)\n' + \
+    'Column 10: star formation rate averaged over 10 Myr (Msun/yr)\n' + \
+    'Column 11: dust mass large graphite (Msun)\n' + \
+    'Column 12: dust mass large Mg silicates (Msun)\n' + \
+    'Column 13: dust mass large Fe silicates (Msun)\n' + \
+    'Column 14: dust mass small graphite (Msun)\n' + \
+    'Column 15: dust mass small Mg silicates (Msun)\n' + \
+    'Column 16: dust mass small Fe silicates (Msun)\n'
 
 stars_header = 'Column 1: x (pc)\n' + \
             'Column 2: y (pc)\n' + \
             'Column 3: z (pc)\n' + \
-            'Column 4: smoothing length (pc)\n' + \
-            'Column 5: initial stellar mass (Msun)\n' + \
-            'Column 6: metallicity (1)\n' + \
-            'Column 7: age (yr)\n'
+            'Column 4: smoothing length (neighbouring star particles) (pc)\n' + \
+            'Column 5: smoothing length (neighbouring gas particles) (pc)\n' + \
+            'Column 6: initial stellar mass (Msun)\n' + \
+            'Column 7: current stellar mass (Msun)\n' + \
+            'Column 8: gas density at birth from parent gas particle (Msun/pc3)\n' + \
+            'Column 9: metallicity (1)\n' + \
+            'Column 10: age (yr)\n'
 
 def attach_membership_info_to_sg_and_mask(sg, membership_filename):
     # Attaches SOAP membership information to SWIFTGalaxy object 
@@ -113,11 +120,13 @@ def attach_membership_info_to_sg_and_mask(sg, membership_filename):
     sg.mask_particles(extra_mask)
     return
 
-def analysis(sg, halo_ID, Mstar, snap):
+def analysis(sg, halo_ID, snap):
     # this function can also have additional args & kwargs, if needed
     # it should only access the pre-loaded data fields
 
     print('Saving txt files for halo ID:', halo_ID)
+
+    z = z_list[snap] # Redshift of the snapshot
 
     if add_mem == True:
         attach_membership_info_to_sg_and_mask(
@@ -130,18 +139,19 @@ def analysis(sg, halo_ID, Mstar, snap):
 
     stars_x, stars_y, stars_z = sg.stars.coordinates.to('pc').to_physical().T
     # Recalculate stellar smoothing lengths, following COLIBRE tutorials
-    if Mstar >= unyt.unyt_quantity(10**(8.5), 'Msun'):
-        stars_sml = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
-                        kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical()
-    else:
-        stars_sml = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932
+    stars_sml_fromStars = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
+                        kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical() # Using neighbouring star particles
+
+    stars_sml_fromGas = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932 # Using neighbouring gas particles
     stars_Z = sg.stars.metal_mass_fractions.to_physical()
-    stars_M = sg.stars.initial_masses.to('Msun').to_physical()
+    stars_Minit = sg.stars.initial_masses.to('Msun').to_physical()
+    stars_Mcurr = sg.stars.masses.to('Msun').to_physical()
+    stars_birthDensity = sg.stars.birth_densities.to('Msun/pc**3').to_physical()
     stars_age = sg.stars.ages.to('yr').to_physical()
 
-    stars_params = np.transpose([stars_x, stars_y, stars_z, stars_sml, stars_M, stars_Z, stars_age])  
+    stars_params = np.transpose([stars_x, stars_y, stars_z, stars_sml_fromStars, stars_sml_fromGas, stars_Minit, stars_Mcurr, stars_birthDensity, stars_Z, stars_age])  
 
-    np.savetxt(storeParticlesPath + 'snap' + str(snap) + '_ID' + str(halo_ID) + '_stars.txt', stars_params, fmt = '%.6e', header = stars_header)
+    np.savetxt(storeParticlesPath + 'snap' + str(snap) + '_ID' + str(halo_ID) + '_stars.txt', stars_params, fmt = '%.6e', header = 'Redshift: ' + str(z) + '\n' + stars_header)
 
 
     # Gas particles
@@ -150,6 +160,8 @@ def analysis(sg, halo_ID, Mstar, snap):
     gas_x, gas_y, gas_z = sg.gas.coordinates.to('pc').to_physical().T
     gas_sml = sg.gas.smoothing_lengths.to('pc').to_physical() * 2.018932
     gas_Z = sg.gas.metal_mass_fractions.to_physical()
+    gas_T = sg.gas.temperatures.to('K').to_physical()
+    gas_rho = sg.gas.densities.to('Msun/pc**3').to_physical()
     gas_SFR = sg.gas.star_formation_rates.to_physical().to('Msun/yr') # Instantaneous SFRs
     gas_SFR_10Myr = sg.gas.averaged_star_formation_rates[:, 1].to_physical().to('Msun/yr') # 10-Myr averaged SFRs
     gas_M = sg.gas.masses.to('Msun').to_physical()
@@ -157,12 +169,12 @@ def analysis(sg, halo_ID, Mstar, snap):
     gas_fDust = np.array([getattr(sg.gas.dust_mass_fractions, name) for name in DustSpecies]).T
     dust_M = (gas_fDust * np.atleast_1d(gas_M)[:, np.newaxis].repeat(6, axis = 1)).to('Msun').to_physical()
 
-    gas_params = np.transpose([gas_x, gas_y, gas_z, gas_sml, gas_Z, gas_SFR, gas_SFR_10Myr,
+    gas_params = np.transpose([gas_x, gas_y, gas_z, gas_sml, gas_Z, gas_T, gas_rho, gas_M, gas_SFR, gas_SFR_10Myr,
                             dust_M[:, 0], dust_M[:, 1], dust_M[:, 2], dust_M[:, 3], dust_M[:, 4], dust_M[:, 5]])
 
 
     
-    np.savetxt(storeParticlesPath + 'snap' + str(snap) + '_ID' + str(halo_ID) + '_gas.txt', gas_params, fmt = '%.6e', header = gas_header)
+    np.savetxt(storeParticlesPath + 'snap' + str(snap) + '_ID' + str(halo_ID) + '_gas.txt', gas_params, fmt = '%.6e', header = 'Redshift: ' + str(z) + '\n' + gas_header)
 
     return None
 
@@ -178,7 +190,7 @@ for snap in args.snaps:
 
     halo_IDs_all = catalogue.input_halos.halo_catalogue_index.value
 
-    halo_IDs = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', usecols = 0)
+    halo_IDs = np.loadtxt(sampleFolder + 'sample_' + str(snap) + '.txt', usecols = 0)
     halo_IDs = halo_IDs.astype(int)
 
     SEL = np.isin(halo_IDs_all, halo_IDs)
@@ -190,14 +202,14 @@ for snap in args.snaps:
 
     halo_indices = np.where(SEL)[0]
 
-    Mstar = unyt.unyt_array(catalogue.bound_subhalo.stellar_mass[SEL].to_physical()) # Convert the cosmo arrays to unyt arrays (without the "Physical" attribute).
-
-    print(len(SEL[SEL]), 'galaxies in snapshot', snap, 'selected.')
+    print(len(halo_IDs), 'galaxies in snapshot', snap, 'selected.')
 
     soap = SOAP(catalogue_file, soap_index = halo_indices)
 
     preload_fields = {'stars.coordinates', 'stars.smoothing_lengths', 'stars.metal_mass_fractions', 'stars.initial_masses', 'stars.ages',
-                    'gas.coordinates', 'gas.smoothing_lengths', 'gas.masses', 'gas.metal_mass_fractions', 'gas.star_formation_rates', 'gas.averaged_star_formation_rates',
+                    'stars.birth_densities', 'stars.masses',
+                    'gas.coordinates', 'gas.smoothing_lengths', 'gas.temperatures', 'gas.densities', 'gas.masses', 'gas.metal_mass_fractions',
+                    'gas.star_formation_rates', 'gas.averaged_star_formation_rates',
                     'gas.dust_mass_fractions.GraphiteLarge', 'gas.dust_mass_fractions.MgSilicatesLarge', 'gas.dust_mass_fractions.FeSilicatesLarge',
                     'gas.dust_mass_fractions.GraphiteSmall', 'gas.dust_mass_fractions.MgSilicatesSmall', 'gas.dust_mass_fractions.FeSilicatesSmall'}
 
@@ -235,6 +247,6 @@ for snap in args.snaps:
             attach_membership_info_to_sg_and_mask(sg, membership_file)
 
     # map accepts arguments `args` and `kwargs`, passed through to function, if needed
-    sgs.map(analysis, args = list(zip(halo_IDs, Mstar, np.full(len(Mstar), snap))))
+    sgs.map(analysis, args = list(zip(halo_IDs, np.full(len(halo_IDs), snap))))
 
     print('Elapsed time for snapshot', snap, ':', datetime.now() - startTime)

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- A SKIRT parameter file © Astronomical Observatory, Ghent University -->
-<skirt-simulation-hierarchy type="MonteCarloSimulation" format="9" producer="SKIRT v9.0 (git b4ea245 built on 03/03/2025 at 12:16:21)" time="2024-07-02T17:42:01.333">
+<skirt-simulation-hierarchy type="MonteCarloSimulation" format="9" producer="SKIRT v9.0 (git a5aff55 built on 23/06/2025 at 11:15:08)" time="2024-07-02T17:42:01.333">
     <MonteCarloSimulation userLevel="Expert" simulationMode="DustEmission" iteratePrimaryEmission="false" iterateSecondaryEmission="false" numPackets="0">
         <random type="Random">
             <Random seed="0"/>
@@ -19,7 +19,7 @@
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <sedFamily type="SEDFamily">
-                            <BpassChabrier100SEDFamily/>
+                            <BpassSEDFamily imf="Chabrier100" resolution="Downsampled"/>
                         </sedFamily>
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>
@@ -30,7 +30,7 @@
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <sedFamily type="SEDFamily">
-                            <ToddlersSEDFamily sedMode="SFRNormalized" stellarTemplate="BPASSChab100Bin" includeDust="true" resolution="Low" sfrPeriod="Period0Myr"/>
+                            <ToddlersSEDFamily sedMode="SFRNormalized" stellarTemplate="BPASSChab100Bin" includeDust="false" resolution="High" sfrPeriod="Period0Myr"/>
                         </sedFamily>
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>
@@ -68,38 +68,38 @@
                     </DustEmissionOptions>
                 </dustEmissionOptions>
                 <media type="Medium">
-                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass large Fe silicates">
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass large silicates">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="aOlM5" bulkMassDensity="2.190E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="aSil" bulkMassDensity="3.50E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <HirashitaLogNormalGrainSizeDistribution minSize="1e-3 micron" maxSize="4.9 micron" centroid="0.1 micron" width="0.75"/>
+                                            <ModifiedPowerLawGrainSizeDistribution minSize="0.03 micron" maxSize="2 micron"  powerLawIndex="-3.21" turnOffPoint="0.164 micron" scaleExponentialDecay="0.1 micron" exponentExponentialDecay="3" scaleCurvature="0.164 micron" strengthCurvature="0.3" exponentCurvature="1"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
                             </ConfigurableDustMix>
                         </materialMix>
                     </ParticleMedium>
-                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass large Mg silicates">
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small silicates">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="aPyM5" bulkMassDensity="2.190E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="aSil" bulkMassDensity="3.50E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <HirashitaLogNormalGrainSizeDistribution minSize="1e-3 micron" maxSize="4.9 micron" centroid="0.1 micron" width="0.75"/>
+                                            <ModifiedPowerLawGrainSizeDistribution minSize="3.1e-4 micron" maxSize="0.03 micron"  powerLawIndex="-3.21" turnOffPoint="0.164 micron" scaleExponentialDecay="0.1 micron" exponentExponentialDecay="3" scaleCurvature="0.164 micron" strengthCurvature="0.3" exponentCurvature="1"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
@@ -113,69 +113,88 @@
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="CM20" bulkMassDensity="1.600E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="Gra" bulkMassDensity="2.24E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <HirashitaLogNormalGrainSizeDistribution minSize="1e-3 micron" maxSize="4.9 micron" centroid="0.1 micron" width="0.75"/>
+                                            <ModifiedPowerLawGrainSizeDistribution minSize="0.03 micron" maxSize="2 micron"  powerLawIndex="-2.54" turnOffPoint="1.07e-2 micron" scaleExponentialDecay="0.428 micron" exponentExponentialDecay="3" scaleCurvature="1.07e-2 micron" strengthCurvature="-0.165" exponentCurvature="1"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
                             </ConfigurableDustMix>
                         </materialMix>
                     </ParticleMedium>
-                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small Fe silicates">
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="0.1946" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small graphite">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="aOlM5" bulkMassDensity="2.190E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="Gra" bulkMassDensity="2.24E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <ModifiedPowerLawGrainSizeDistribution minSize="4e-4 micron" maxSize="4.9 micron" powerLawIndex="-5" turnOffPoint="1e-2 micron" scaleExponentialDecay="5e-2 micron" exponentExponentialDecay="1" strengthCurvature="0"/>
+                                            <ModifiedPowerLawGrainSizeDistribution minSize="3.1e-4 micron" maxSize="0.03 micron"  powerLawIndex="-2.54" turnOffPoint="1.07e-2 micron" scaleExponentialDecay="0.428 micron" exponentExponentialDecay="3" scaleCurvature="1.07e-2 micron" strengthCurvature="-0.165" exponentCurvature="1"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
                             </ConfigurableDustMix>
                         </materialMix>
                     </ParticleMedium>
-                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small Mg silicates">
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="0.2017" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small graphite">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="aPyM5" bulkMassDensity="2.190E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="Gra" bulkMassDensity="2.24E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <ModifiedPowerLawGrainSizeDistribution minSize="4e-4 micron" maxSize="4.9 micron" powerLawIndex="-5" turnOffPoint="1e-2 micron" scaleExponentialDecay="5e-2 micron" exponentExponentialDecay="1" strengthCurvature="0"/>
+                                            <LogNormalGrainSizeDistribution minSize="3.1e-4 micron" maxSize="0.03 micron"  centroid="2e-3 micron" width="0.55"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
                             </ConfigurableDustMix>
                         </materialMix>
                     </ParticleMedium>
-                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="1" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small graphite">
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="0.3019" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small graphite">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <materialMix type="MaterialMix">
                             <ConfigurableDustMix scatteringType="HenyeyGreenstein">
                                 <populations type="GrainPopulation">
-                                    <GrainPopulation numSizes="15" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
                                         <composition type="GrainComposition">
-                                            <DustEmGrainComposition grainType="CM20" bulkMassDensity="1.600E+00 g/cm3"/>
+                                            <DustEmGrainComposition grainType="PAH0DL07" bulkMassDensity="2.24E+00 g/cm3"/>
                                         </composition>
                                         <sizeDistribution type="GrainSizeDistribution">
-                                            <ModifiedPowerLawGrainSizeDistribution minSize="4e-4 micron" maxSize="4.9 micron" powerLawIndex="-5" turnOffPoint="1e-2 micron" scaleExponentialDecay="5e-2 micron" exponentExponentialDecay="1" strengthCurvature="0"/>
+                                            <LogNormalGrainSizeDistribution minSize="3.1e-4 micron" maxSize="1.2e-3 micron"  centroid="4e-4 micron" width="0.4"/>
+                                        </sizeDistribution>
+                                    </GrainPopulation>
+                                </populations>
+                            </ConfigurableDustMix>
+                        </materialMix>
+                    </ParticleMedium>
+                    <ParticleMedium filename="dust.txt" massType="Mass" massFraction="0.3019" importMetallicity="false" importTemperature="false" maxTemperature="0 K" importVelocity="false" importMagneticField="false" importVariableMixParams="false" useColumns="x, y, z, smoothing length, dust mass small graphite">
+                        <smoothingKernel type="SmoothingKernel">
+                            <QuarticSplineSmoothingKernel/>
+                        </smoothingKernel>
+                        <materialMix type="MaterialMix">
+                            <ConfigurableDustMix scatteringType="HenyeyGreenstein">
+                                <populations type="GrainPopulation">
+                                    <GrainPopulation numSizes="10" normalizationType="DustMassPerHydrogenMass" dustMassPerHydrogenMass="0.999">
+                                        <composition type="GrainComposition">
+                                            <DustEmGrainComposition grainType="PAH1DL07" bulkMassDensity="2.24E+00 g/cm3"/>
+                                        </composition>
+                                        <sizeDistribution type="GrainSizeDistribution">
+                                            <LogNormalGrainSizeDistribution minSize="3.1e-4 micron" maxSize="1.2e-3 micron"  centroid="4e-4 micron" width="0.4"/>
                                         </sizeDistribution>
                                     </GrainPopulation>
                                 </populations>
@@ -219,6 +238,11 @@
                         </wavelengthGrid>
                     </SEDInstrument>
                     <SEDInstrument instrumentName="SED_1Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="1 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
+                        </wavelengthGrid>
+                    </SEDInstrument>
+                    <SEDInstrument instrumentName="SED_2Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="2 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
                             <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
                         </wavelengthGrid>

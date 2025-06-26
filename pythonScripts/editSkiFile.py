@@ -30,9 +30,8 @@ txtFilePath = sys.argv[4]
 SKIRTinputFilePath = sys.argv[5]
 simPath = sys.argv[6]
 
-skifileversion = '4.0'
+skifileversion = '5.0'
 
-mediumXMLlineDict = {'4.0': (40, 197)} # Lines in the .ski file that describe the medium system
 
 # Define filepaths from parameter file
 dir_path = os.path.dirname(os.path.realpath(__file__))
