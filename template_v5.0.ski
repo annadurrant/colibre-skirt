@@ -242,11 +242,6 @@
                             <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
                         </wavelengthGrid>
                     </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_2Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="2 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
                     <SEDInstrument instrumentName="SED_3Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="3 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
                             <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>

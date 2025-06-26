@@ -19,21 +19,21 @@ txtFilePath = sys.argv[3]
 SKIRTinputFilePath = sys.argv[4]
 
 old_stars_tmin = unyt.unyt_quantity(10., 'Myr')
-SKIRTboxsize = unyt.unyt_quantity(100., 'kpc')
+
+f = open(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt', 'r')
+header = f.readline() # Read first header line
+redshift = float(header.split(' ')[-1])
+f.close()
+
+scaleFactor = 1. / (1. + redshift) # Scale factor for the snapshot
+SKIRTboxsize = unyt.unyt_quantity(min(100., 100. * 1.8 / 0.7 * scaleFactor), 'kpc') # Scale SKIRT box size akin to COLIBRE gravitational softening length
+
 
 # Star particles
 
 with warnings.catch_warnings():
     warnings.simplefilter('ignore') # Ignore warning if file is empty
-
-    f = open(txtFilePath + 'snap' + snapNum + '_' + 'galaxy' + f'{int(haloID):06d}' + '_stars.txt', 'r')
-    header = f.readline() # Read first header line
-    redshift = float(header.split(' ')[-1])
-    f.close()
-
-    print(redshift)
-
-    stars_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'galaxy' + f'{int(haloID):06d}' + '_stars.txt'))
+    stars_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt'))
 
 if np.shape(stars_file) != (1, 0): # At least one star particle
 
@@ -80,7 +80,7 @@ np.savetxt(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_old_stars.
 #
 with warnings.catch_warnings():
     warnings.simplefilter('ignore') # Ignore warning if file is empty
-    gas_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'galaxy' + f'{int(haloID):06d}' + '_gas.txt'))
+    gas_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_gas.txt'))
 
 if  np.shape(gas_file) != (1, 0): # At least one gas particle
 

@@ -15,12 +15,11 @@ startTime = datetime.now()
 
 # Global settings
 
-SKIRTboxsize = unyt.unyt_quantity(100., 'kpc')
 old_stars_tmin = unyt.unyt_quantity(10., 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
 # Don't change this unless you know what you're doing :)
 
-Npp = int(10**7.5) # Number of photon packets
-binTreeMaxLevel = 36 # Max refinement level of the spatial grid
+Npp = int(10**4.5) # Number of photon packets
+binTreeMaxLevel = 26 # Max refinement level of the spatial grid
 
 snapNum = sys.argv[1]
 haloID = sys.argv[2]
@@ -28,7 +27,14 @@ Rstar = float(sys.argv[3])
 
 txtFilePath = sys.argv[4]
 SKIRTinputFilePath = sys.argv[5]
-simPath = sys.argv[6]
+
+f = open(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt', 'r')
+header = f.readline() # Read first header line
+redshift = float(header.split(' ')[-1])
+f.close()
+
+scaleFactor = 1. / (1. + redshift) # Scale factor for the snapshot
+SKIRTboxsize = unyt.unyt_quantity(min(100., 100. * 1.8 / 0.7 * scaleFactor), 'kpc') # Scale SKIRT box size akin to COLIBRE gravitational softening length
 
 skifileversion = '5.0'
 
@@ -110,7 +116,7 @@ def editSki(snapNum, haloID, Rstar):
             # start writing lines
             # iterate line and line number
             for number, line in enumerate(lines):
-                if number <= mediumXMLlineDict[skifileversion][0] or number >= mediumXMLlineDict[skifileversion][1]:
+                if number <= 40 or number >= 216:
                     fp.write(line)
 
 

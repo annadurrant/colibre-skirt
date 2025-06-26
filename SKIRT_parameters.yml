@@ -14,10 +14,10 @@ ColibreFilepaths:
 
 SkirtFilepaths:
   skiFilepath: '/Users/agebek/Projects/Colibre/colibre-skirt/template_v{skifileversion}.ski' # The path to the ski file
-  sampleFolder: '/Users/agebek/Downloads/TESTING/' # Folder where the galaxy sample .txt files are stored (for SKIRT run)
-  storeParticlesPath: '/Users/agebek/Downloads/TESTING/particleData/' # Folder where the .txt particle files are stored (for SKIRT run)
-  SKIRTinputFilePath: '/Users/agebek/Downloads/TESTING/SKIRTinputFiles/' # Path where the SKIRT input files will be stored
-  SKIRToutputFilePath: '/Users/agebek/Downloads/TESTING/SKIRToutputFiles/' # Path where the SKIRT output files will be stored
+  sampleFolder: '/Users/agebek/Downloads/{sim}/' # Folder where the galaxy sample .txt files are stored (for SKIRT run)
+  storeParticlesPath: '/Users/agebek/Downloads/{sim}/particleData/' # Folder where the .txt particle files are stored (for SKIRT run)
+  SKIRTinputFilePath: '/Users/agebek/Downloads/{sim}/SKIRTinputFiles/' # Path where the SKIRT input files will be stored
+  SKIRToutputFilePath: '/Users/agebek/Downloads/{sim}/SKIRToutputFiles/' # Path where the SKIRT output files will be stored
 
 SelectionCriteria:
   minStellarMass: 1e9 # Lower stellar mass limit for halo selection in Msun

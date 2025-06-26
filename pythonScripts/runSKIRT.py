@@ -62,11 +62,13 @@ dir_path = os.path.dirname(os.path.realpath(__file__))
 with open(f'{dir_path}/../SKIRT_parameters.yml','r') as stream:
     params = yaml.safe_load(stream)
 
-simPath = params['ColibreFilepaths']['simPath'].format(simName=simName)
-sampleFolder = params['SkirtFilepaths']['sampleFolder'].format(simPath=simPath) # Folder to the galaxy sample files
-txtFilePath = params['SkirtFilepaths']['storeParticlesPath'].format(simPath=simPath) # Path to the COLIBRE particle .txt files
-SKIRTinputFilePath = params['SkirtFilepaths']['SKIRTinputFilePath'].format(simPath=simPath) # Path where the SKIRT input files will be stored
-SKIRToutputFilePath = params['SkirtFilepaths']['SKIRToutputFilePath'].format(simPath=simPath) # Path where the SKIRT output files will be stored
+sim = 'L{:03.0f}_m{:01.0f}'.format(args.BoxSize, args.Resolution)
+
+sampleFolder = params['SkirtFilepaths']['sampleFolder'].format(sim = sim) # Folder to the galaxy sample files
+txtFilePath = params['SkirtFilepaths']['storeParticlesPath'].format(sim = sim) # Path to the COLIBRE particle .txt files
+SKIRTinputFilePath = params['SkirtFilepaths']['SKIRTinputFilePath'].format(sim = sim) # Path where the SKIRT input files will be stored
+SKIRToutputFilePath = params['SkirtFilepaths']['SKIRToutputFilePath'].format(sim = sim) # Path where the SKIRT output files will be stored
+
 
 # Set list of snapshots to postprocess
 
@@ -92,7 +94,7 @@ def preprocess(snapList):
 
             # Edit ski files
 
-            subprocess.run(['python', f'{dir_path}/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath, simPath])
+            subprocess.run(['python', f'{dir_path}/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath])
 
     return skifilenames
 
@@ -115,7 +117,7 @@ def postprocess(snapList):
 
         halo_IDs = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', unpack = True, usecols = 0).astype(int)
 
-        for idx, ID in enumerate(halo_IDs):
+        for ID in halo_IDs:
 
             sim_name = 'snap' + str(snap) + '_ID' + str(ID)
 
