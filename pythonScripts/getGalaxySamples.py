@@ -16,44 +16,49 @@ parser = argparse.ArgumentParser(
 )
 
 parser.add_argument(
-    "BoxSize",
-    type=int,
-    help="Boxsize of the simulation in Mpc.",
-)
-
-parser.add_argument(
-    "Resolution",
-    type=int,
-    help="Particle mass resolution of the simulation in log10(M/Msun).",
+    "simName",
+    type=str,
+    help="Simulation name.",
 )
 
 parser.add_argument(
     "--snaps",
     type=int,
-    required=True,
     nargs='+',
     help="<Required> Snapshot number(s).",
 )
 
 parser.add_argument(
-    "--mode",
-    type=str,
-    default="Thermal", # Thermal AGN feedback with non-equilibrium chemistry
-    help="Simulation mode (default: Thermal).",
+    "--IDs",
+    type=int,
+    nargs='+',
+    default=-1,
+    help="Halo IDs to run SKIRT simulations for, based on HBT track IDs.",
 )
+
+parser.add_argument(
+    "--vIMF",
+    action="store_true",
+    help="Running in vIMF mode (default: false).",
+)
+
 
 args = parser.parse_args()
 
-sim = 'L{:03.0f}_m{:01.0f}'.format(args.BoxSize, args.Resolution)
-simName = sim + '/' + args.mode
-
 # Define filepaths from parameter file
-dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(f'{dir_path}/../SKIRT_parameters.yml','r') as stream:
+dir_path =  os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+param_file = 'SKIRT_parameters.yml'
+if args.vIMF == True:
+    param_file = 'vimf_' + param_file
+with open(f'{dir_path}/{param_file}','r') as stream:
     params = yaml.safe_load(stream)
 
-simPath = params['ColibreFilepaths']['simPath'].format(simName=simName)
-sampleFolder = params['ColibreFilepaths']['sampleFolder'].format(simPath=simPath)
+simPath = params['InputFilepaths']['simPath'].format(simName=args.simName)
+sampleFolder = params['OutputFilepaths']['sampleFolder'].format(simPath=simPath)
+
+# Make output directories 
+os.system(f'mkdir -p {os.path.dirname(sampleFolder)}')
+os.system(f'mkdir -p {sampleFolder}')
 
 header = 'Column 1: Halo ID\n' + \
          'Column 2: Stellar mass (Msun)\n' + \
@@ -61,19 +66,34 @@ header = 'Column 1: Halo ID\n' + \
 
 for snap in args.snaps:
     
-    catalogue_file = params['ColibreFilepaths']['catalogueFile'].format(simPath=simPath,snap_nr=snap)
+    catalogue_file = params['InputFilepaths']['catalogueFile'].format(simPath=simPath,snap_nr=snap)
     catalogue = load_snapshot(catalogue_file)
    
-    halo_IDs = catalogue.input_halos.halo_catalogue_index.value
+    if args.vIMF == False:
+        halo_track_IDs = catalogue.input_halos_hbtplus.track_id.value
+    else: #required for now, I don't think older SOAP had hbt tracking ids included
+        halo_track_IDs = catalogue.input_halos.halo_catalogue_index.value
 
     Mstar = unyt.unyt_array(catalogue.bound_subhalo.stellar_mass.to_physical())
     Rstar = unyt.unyt_array(catalogue.bound_subhalo.half_mass_radius_stars.to_physical())
 
-    SEL = (Mstar >= unyt.unyt_quantity(float(params['SelectionCriteria']['minStellarMass']), 'Msun')) * (Mstar <= unyt.unyt_quantity(float(params['SelectionCriteria']['maxStellarMass']), 'Msun')) # Simple stellar mass selection. Replace this with 
-    # your selection criteria.
+    if args.IDs != -1:
+        SEL = np.isin(halo_track_IDs, args.IDs)
+    
+    else:
+        SEL = (Mstar >= unyt.unyt_quantity(float(params['SelectionCriteria']['minStellarMass']), 'Msun')) * (Mstar <= unyt.unyt_quantity(float(params['SelectionCriteria']['maxStellarMass']), 'Msun')) # Simple stellar mass selection. Replace this with 
+        # your selection criteria.
+
+        max_number = params['SelectionCriteria']['maxNumHalos']
+        count = 0
+        for sel_i,selection in enumerate(SEL):
+            if selection == True and count == max_number:
+                SEL[sel_i] = False
+            elif selection == True:
+                count += 1
 
     print(len(SEL[SEL]), 'galaxies selected in snapshot', snap)
 
-    sample_file = np.vstack((halo_IDs, Mstar.to('Msun').value, Rstar.to('kpc').value)).T[SEL, :]
+    sample_file = np.vstack((halo_track_IDs, Mstar.to('Msun').value, Rstar.to('kpc').value)).T[SEL, :]
 
     np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', sample_file, fmt = ['%d', '%.6e', '%.4f'], header = header)

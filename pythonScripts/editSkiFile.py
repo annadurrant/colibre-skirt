@@ -13,13 +13,17 @@ import yaml
 
 startTime = datetime.now()
 
+# Define filepaths from parameter file
+dir_path =  os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+with open(f'{dir_path}/SKIRT_parameters.yml','r') as stream:
+    params = yaml.safe_load(stream)
+
 # Global settings
 
-old_stars_tmin = unyt.unyt_quantity(10., 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
-# Don't change this unless you know what you're doing :)
+old_stars_tmin = unyt.unyt_quantity(params['ModelParameters']['starsMaxAge'], 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
 
-Npp = int(10**4.5) # Number of photon packets
-binTreeMaxLevel = 26 # Max refinement level of the spatial grid
+Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per gas particle
+binTreeMaxLevel = params['ModelParameters']['binTreeMaxLevel'] # Max refinement level of the spatial grid
 
 snapNum = sys.argv[1]
 haloID = sys.argv[2]
@@ -34,15 +38,11 @@ redshift = float(header.split(' ')[-1])
 f.close()
 
 scaleFactor = 1. / (1. + redshift) # Scale factor for the snapshot
-SKIRTboxsize = unyt.unyt_quantity(min(100., 100. * 1.8 / 0.7 * scaleFactor), 'kpc') # Scale SKIRT box size akin to COLIBRE gravitational softening length
+SKIRTboxsize0 = float(params['ModelParameters']['SKIRTboxsize'])
+SKIRTboxsize = unyt.unyt_quantity(min(SKIRTboxsize0, SKIRTboxsize0 * 1.8 / 0.7 * scaleFactor), 'kpc') # Scale SKIRT box size akin to COLIBRE gravitational softening length
 
 skifileversion = '5.0'
 
-
-# Define filepaths from parameter file
-dir_path = os.path.dirname(os.path.realpath(__file__))
-with open(f'{dir_path}/../SKIRT_parameters.yml','r') as stream:
-    params = yaml.safe_load(stream)
 
 # Edit ski file
 
@@ -50,7 +50,7 @@ def editSki(snapNum, haloID, Rstar):
 
     SKIRTinputFiles = SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID
 
-    skifilename = params['SkirtFilepaths']['skiFilepath'].format(skifileversion=skifileversion)
+    skifilename = params['InputFilepaths']['skiFilepath'].format(skifileversion=skifileversion)
 
     skifilename_halo = 'snap' + snapNum + '_ID' + haloID + '.ski'
 
@@ -63,6 +63,8 @@ def editSki(snapNum, haloID, Rstar):
         warnings.simplefilter('ignore') # Ignore warning if file is empty
         gas_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_ID' + haloID + '_gas.txt')) # Calculate dust surface density from the 
         # original gas particle data, to avoid issues with negative dust masses due to TODDLERS dust subtraction
+    
+    Npp = Npp_per_par * len(gas_file)
     
     if np.shape(gas_file) == (1, 10): # Only one gas particle
 

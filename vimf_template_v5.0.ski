@@ -19,7 +19,7 @@
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <sedFamily type="SEDFamily">
-                            <FSPSSEDFamily imf="Chabrier"/>
+                            <FSPSSEDFamily imf="Variable"/>
                         </sedFamily>
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>
@@ -217,55 +217,22 @@
         <instrumentSystem type="InstrumentSystem">
             <InstrumentSystem>
                 <instruments type="Instrument">
-                    <FrameInstrument instrumentName="image" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" fieldOfViewX="100 kpc" numPixelsX="768" centerX="0" fieldOfViewY="100 kpc" numPixelsY="768" centerY="0" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                    <SEDInstrument instrumentName="SED_tot" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
                             <ConfigurableBandWavelengthGrid>
                                 <bands type="Band">
-                                    <BroadBand bandName="SDSS g"/>
-                                    <BroadBand bandName="SDSS r"/>
-                                    <BroadBand bandName="SDSS i"/>
-                                    <!-- <BroadBand bandName="HST_ACS_WFC_F475W"/>
-                                    <BroadBand bandName="HST_ACS_WFC_F606W"/>
-                                    <BroadBand bandName="HST_ACS_WFC_F625W"/>
-                                    <BroadBand bandName="HST_ACS_WFC_F775W"/>
-                                    <BroadBand bandName="HST_ACS_WFC_F814W"/> -->
+                                    <BroadBand bandName="GALEX FUV"/>
                                 </bands>
                             </ConfigurableBandWavelengthGrid>
-                        </wavelengthGrid>
-                    </FrameInstrument>
-                    <SEDInstrument instrumentName="SED_tot" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_10kpc" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="10 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_30kpc" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="30 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
                         </wavelengthGrid>
                     </SEDInstrument>
                     <SEDInstrument instrumentName="SED_50kpc" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="50 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_1Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="1 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_3Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="3 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
-                        </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_5Rstar" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="5 Rstar" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
-                        <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
+                            <ConfigurableBandWavelengthGrid>
+                                <bands type="Band">
+                                    <BroadBand bandName="GALEX FUV"/>
+                                </bands>
+                            </ConfigurableBandWavelengthGrid>
                         </wavelengthGrid>
                     </SEDInstrument>
                 </instruments>

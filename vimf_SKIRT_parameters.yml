@@ -1,7 +1,7 @@
 InputFilepaths:
-  skiFilepath: "/mnt/aridata1/users/ariadurr/WORK/Processing/colibre-skirt/template_v{skifileversion}.ski" # The path to the ski file
+  skiFilepath: "/mnt/aridata1/users/ariadurr/WORK/Processing/colibre-skirt/vimf_template_v{skifileversion}.ski" # The path to the ski file
   simPath: "/mnt/aridata1/users/ariadurr/WORK/Simulations/{simName}" # Path to COLIBRE simulation
-  catalogueFile: "{simPath}/SOAP/halo_properties_{snap_nr:04d}.hdf5"
+  catalogueFile: "{simPath}/SOAP/halo_properties_vimf_{snap_nr:04d}.hdf5"
 
   # If the snapshots are distributed
   virtualSnapshotFile: "{simPath}/SOAP/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5"
@@ -19,11 +19,11 @@ OutputFilepaths:
 SelectionCriteria:
   minStellarMass: 1.0e8 # Lower stellar mass limit for halo selection in Msun
   maxStellarMass: 8.0e9 # Upper stellar mass limit for halo selection in Msun
-  maxNumHalos: 2 # Max number of halos to select in the given mass range
+  maxNumHalos: 100 # Max number of halos to select in the given mass range
 
 ModelParameters:
   SKIRTboxsize: 100 # in kpc
-  starsMaxAge: 10 # in Myr, stars younger than this age are modelled from SF gas. This must match TODDLERS SFR period.
+  starsMaxAge: 0 # in Myr, stars younger than this age are modelled from SF gas. This must match TODDLERS SFR period.
   photonPackets: 1e4 # Number of photon packets per star particle
   binTreeMaxLevel: 36 # Max refinement level of the spatial grid
-  rotation: "face_on" # Option to rotate galaxy based on the angular momentum vector of stars
+  rotation: "None" # Option to rotate galaxy based on the angular momentum vector of stars
