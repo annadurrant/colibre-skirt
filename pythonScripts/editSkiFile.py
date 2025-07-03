@@ -13,17 +13,7 @@ import yaml
 
 startTime = datetime.now()
 
-# Define filepaths from parameter file
-dir_path =  os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-with open(f'{dir_path}/SKIRT_parameters.yml','r') as stream:
-    params = yaml.safe_load(stream)
-
 # Global settings
-
-old_stars_tmin = unyt.unyt_quantity(params['ModelParameters']['starsMaxAge'], 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
-
-Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per gas particle
-binTreeMaxLevel = params['ModelParameters']['binTreeMaxLevel'] # Max refinement level of the spatial grid
 
 snapNum = sys.argv[1]
 haloID = sys.argv[2]
@@ -31,6 +21,22 @@ Rstar = float(sys.argv[3])
 
 txtFilePath = sys.argv[4]
 SKIRTinputFilePath = sys.argv[5]
+
+vIMF = sys.argv[7] == 'True' #whether to run in vIMF mode
+
+# Define filepaths from parameter file
+dir_path =  os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+param_file = 'SKIRT_parameters.yml'
+if vIMF == True:
+    param_file = 'vimf_' + param_file
+with open(f'{dir_path}/{param_file}','r') as stream:
+    params = yaml.safe_load(stream)
+
+old_stars_tmin = unyt.unyt_quantity(params['ModelParameters']['starsMaxAge'], 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
+
+Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per gas particle
+binTreeMaxLevel = params['ModelParameters']['binTreeMaxLevel'] # Max refinement level of the spatial grid
+
 
 f = open(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt', 'r')
 header = f.readline() # Read first header line
@@ -51,6 +57,8 @@ def editSki(snapNum, haloID, Rstar):
     SKIRTinputFiles = SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID
 
     skifilename = params['InputFilepaths']['skiFilepath'].format(skifileversion=skifileversion)
+
+    print(skifilename)
 
     skifilename_halo = 'snap' + snapNum + '_ID' + haloID + '.ski'
 

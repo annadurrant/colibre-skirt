@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!-- A SKIRT parameter file © Astronomical Observatory, Ghent University -->
 <skirt-simulation-hierarchy type="MonteCarloSimulation" format="9" producer="SKIRT v9.0 (git a5aff55 built on 23/06/2025 at 11:15:08)" time="2024-07-02T17:42:01.333">
-    <MonteCarloSimulation userLevel="Expert" simulationMode="DustEmission" iteratePrimaryEmission="false" iterateSecondaryEmission="false" numPackets="0">
+    <MonteCarloSimulation userLevel="Expert" simulationMode="ExtinctionOnly" iteratePrimaryEmission="false" iterateSecondaryEmission="false" numPackets="0">
         <random type="Random">
             <Random seed="0"/>
         </random>
@@ -12,20 +12,20 @@
             <LocalUniverseCosmology/>
         </cosmology>
         <sourceSystem type="SourceSystem">
-            <SourceSystem minWavelength="0.09 micron" maxWavelength="2 micron" wavelengths="0.55 micron" sourceBias="0.5">
+            <SourceSystem minWavelength="0.13 micron" maxWavelength="0.2 micron" wavelengths="0.55 micron" sourceBias="0.5">
                 <sources type="Source">
                     <ParticleSource filename="old_stars.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <sedFamily type="SEDFamily">
-                            <FSPSSEDFamily imf="Variable"/>
+                            <FSPSvarIMFSEDFamily/>
                         </sedFamily>
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>
                         </wavelengthBiasDistribution>
                     </ParticleSource>
-                    <ParticleSource filename="starforming_gas.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
+                    <!-- <ParticleSource filename="starforming_gas.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
@@ -35,7 +35,7 @@
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>
                         </wavelengthBiasDistribution>
-                    </ParticleSource>
+                    </ParticleSource> -->
                 </sources>
             </SourceSystem>
         </sourceSystem>
@@ -244,7 +244,7 @@
                     <ConvergenceInfoProbe probeName="conv" wavelength="0.55 micron" probeAfter="Setup"/>
                     <LuminosityProbe probeName="lum">
                         <wavelengthGrid type="WavelengthGrid">
-                            <LogBorderWavelengthGrid minWavelength="0.09 micron" maxWavelength="2000 micron" numWavelengthBins="500"/>
+                            <LogBorderWavelengthGrid minWavelength="0.13 micron" maxWavelength="0.2 micron" numWavelengthBins="500"/>
                         </wavelengthGrid>
                     </LuminosityProbe>
                 </probes>
