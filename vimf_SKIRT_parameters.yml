@@ -15,6 +15,7 @@ OutputFilepaths:
   storeParticlesPath: "{simPath}/SKIRT/ParticleFiles/{rotation}/" # Folder where the COLIBRE particle .txt files will be stored
   SKIRTinputFilePath: "{simPath}/SKIRT/InputFiles/{rotation}/" # Path where the SKIRT input files will be stored
   SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles/" # Path where the SKIRT output files will be stored
+  GalaxyLuminositiesFilepath: "{simPath}/SOAP/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
 
 SelectionCriteria:
   minStellarMass: 1.0e8 # Lower stellar mass limit for halo selection in Msun
