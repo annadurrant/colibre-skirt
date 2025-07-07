@@ -49,9 +49,7 @@ for file in skirt_files:
         id = int(file.split('_')[1].replace('ID',''))
         skirt_luminosities[id] = np.loadtxt(SKIRToutputFilePath + '/' + file,usecols=1)
 
-
-# Load SOAP catalogue and 
-# get expected attributes for luminosity field
+# Load SOAP catalogue and required attributes for a SOAP dset
 catalogue_file = params['InputFilepaths']['catalogueFile'].format(simPath=simPath,snap_nr=args.snap)
 
 with h5.File(catalogue_file) as fi:
@@ -69,16 +67,17 @@ fi.close()
 output_filepath = params['OutputFilepaths']['GalaxyLuminositiesFilepath'].format(simPath=simPath,snap_nr=args.snap)
 output_fi = h5.File(output_filepath,'a')
 
-luminosity_array = np.zeros_like(halo_IDs)
+luminosity_array = np.zeros_like(halo_IDs,dtype=float)
 for id in skirt_luminosities:
     dset_id = np.where(halo_IDs == id)[0][0]
     luminosity_array[dset_id] = 1e12 * skirt_luminosities[id] / 3631 #Jy
 
-if os.path.isfile(output_filepath):
+
+try:
     dset = output_fi['FUVStellarLuminosity']
     dset[...] = luminosity_array
 
-else:
+except:
     dset = output_fi.create_dataset('FUVStellarLuminosity',data=luminosity_array)
 
     for attribute in attributes:

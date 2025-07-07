@@ -85,15 +85,38 @@ for snap in args.snaps:
         # your selection criteria.
 
         max_number = params['SelectionCriteria']['maxNumHalos']
-        count = 0
-        for sel_i,selection in enumerate(SEL):
-            if selection == True and count == max_number:
-                SEL[sel_i] = False
-            elif selection == True:
-                count += 1
+        if max_number > 0:
+            count = 0
+            for sel_i,selection in enumerate(SEL):
+                if selection == True and count == max_number:
+                    SEL[sel_i] = False
+                elif selection == True:
+                    count += 1
 
-    print(len(SEL[SEL]), 'galaxies selected in snapshot', snap)
+    ngal = len(SEL[SEL])
+    print(ngal, 'galaxies selected in snapshot', snap)
 
     sample_file = np.vstack((halo_track_IDs, Mstar.to('Msun').value, Rstar.to('kpc').value)).T[SEL, :]
+
+    if ngal > 1e5:
+        nproc = 64
+        gal_per_slice = int(ngal/nproc)
+        gals_slice_collections = []
+        for i in range(nproc):
+            if i < nproc-1:
+                particles_indicies = np.arange(i*gal_per_slice,(i+1)*gal_per_slice)
+            else:
+                particles_indicies = np.arange(i*gal_per_slice,ngal)
+            gals_slice_collections.append(particles_indicies)
+
+        os.system(f'mkdir -p {sampleFolder}/sample_{snap}')
+
+
+        for id,collection in enumerate(gals_slice_collections):
+            sample_slice = sample_file[collection[0]:collection[-1]+1]
+
+            np.savetxt(sampleFolder + f'/sample_{snap}/sample_{snap}.{id}.txt',sample_slice, fmt = ['%d', '%.6e', '%.4f'], header = header)
+
+    # But still save whole sample too
 
     np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', sample_file, fmt = ['%d', '%.6e', '%.4f'], header = header)

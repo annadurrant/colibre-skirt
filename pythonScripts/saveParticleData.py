@@ -44,6 +44,12 @@ parser.add_argument(
     help="Running in vIMF mode (default: false).",
 )
 
+parser.add_argument(
+    "--distr",
+    type=int,
+    default=-1,
+)
+
 args = parser.parse_args()
 
 # Define filepaths from parameter file
@@ -148,7 +154,7 @@ def analysis(sg, halo_ID, Mstar, snap, angular_momentum_vector):
         else:
             raise Warning('The rotation parameter can only be None, face_on or edge_on.')
         
-        angular_momentum_vector /= np.linalg.norm(angular_momentum_vector)
+        angular_momentum_vector /= -1 * np.linalg.norm(angular_momentum_vector)
         
         rotation_matrix,_ = scipy.spatial.transform.Rotation.align_vectors(alignment_vector, angular_momentum_vector)
         rotation_matrix.as_matrix()
@@ -161,9 +167,14 @@ def analysis(sg, halo_ID, Mstar, snap, angular_momentum_vector):
 
     stars_x, stars_y, stars_z = stars_coordinates.T
     # Recalculate stellar smoothing lengths, following COLIBRE tutorials
-    stars_sml_fromStars = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
-                        kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical() # Using neighbouring star particles
+    starsSml_threshold = 10 * np.min(sg.stars.masses) # must be at least 10 star particles to generate smoothing lengths from stars
 
+    if Mstar >= starsSml_threshold:
+        stars_sml_fromStars = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
+                        kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical()
+    else:
+        stars_sml_fromStars = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932
+    
     stars_sml_fromGas = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932 # Using neighbouring gas particles
     stars_Z = sg.stars.metal_mass_fractions.to_physical()
     stars_Minit = sg.stars.initial_masses.to('Msun').to_physical()
@@ -236,7 +247,12 @@ for snap in args.snaps:
     else: #required for now, I don't think older SOAP had hbt tracking ids included
         halo_IDs_all = catalogue.input_halos.halo_catalogue_index.value
 
-    halo_IDs = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', usecols = 0)
+    if args.distr != -1:
+        sampleFile = sampleFolder + '/sample_' + str(snap) + '/sample_' + str(snap) + '.' + str(args.distr) + '.txt'
+        print('sampleFile: ', sampleFile)
+        halo_IDs = np.loadtxt(sampleFile, usecols = 0)
+    else:
+        halo_IDs = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', usecols = 0)
     halo_IDs = halo_IDs.astype(int)
 
     SEL = np.isin(halo_IDs_all, halo_IDs)
@@ -250,7 +266,7 @@ for snap in args.snaps:
 
     Mstar = unyt.unyt_array(catalogue.bound_subhalo.stellar_mass[SEL].to_physical()) # Convert the cosmo arrays to unyt arrays (without the "Physical" attribute).
 
-    print(len(SEL[SEL]), 'galaxies selected in snapshot', snap, 'from galaxy samples.')
+    print(len(SEL[SEL]), 'galaxies selected in snapshot', snap, 'from galaxy samples.',flush=True)
 
     soap = SOAP(catalogue_file, soap_index = halo_indices)
 

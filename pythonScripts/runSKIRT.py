@@ -116,7 +116,7 @@ def preprocess(snapList):
 
             # Edit ski files
 
-            subprocess.run(['python', f'{dir_path}/pythonScripts/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath, simPath])
+            subprocess.run(['python', f'{dir_path}/pythonScripts/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath, simPath, str(args.vIMF)])
 
     return skifilenames
 
@@ -144,9 +144,16 @@ def postprocess(snapList):
             if args.ID != None and ID != args.ID:
                 continue
 
-            sim_name = 'snap' + str(snap) + '_ID' + str(ID)
+            file_name = 'snap' + str(snap) + '_ID' + str(ID)
+
+            if args.vIMF == True:
+                subprocess.run(['rm', file_name + '.ski']) # Remove the SKIRT input file
+                subprocess.run(['rm', file_name + '_conv_convergence.dat'])
+                subprocess.run(['rm', file_name + '_parameters.xml']) # Remove the SKIRT input file
+                subprocess.run(['rm', file_name + '_lum_luminosities.dat']) # Remove the SKIRT input file
+                subprocess.run(['rm', file_name + '_log.txt']) # Remove the SKIRT input file
             
-            os.system(f'mv {sim_name}* {SKIRToutputFilePath}/')
+            # os.system(f'mv {file_name}* {SKIRToutputFilePath}/')
 
 def main():
 
@@ -156,7 +163,7 @@ def main():
         
         pool.map(runSKIRT, skifilenames)
 
-    # postprocess(args.snaps)
+    postprocess(args.snaps)
 
 if __name__=="__main__":
 
