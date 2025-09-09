@@ -18,9 +18,9 @@ OutputFilepaths:
   GalaxyLuminositiesFilepath: "{simPath}/SOAP/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
 
 SelectionCriteria:
-  minStellarMass: 1.0e8 # Lower stellar mass limit for halo selection in Msun
-  maxStellarMass: 8.0e9 # Upper stellar mass limit for halo selection in Msun
-  maxNumHalos: 100 # Max number of halos to select in the given mass range
+  minStellarMass: 1.0e4 # Lower stellar mass limit for halo selection in Msun
+  maxStellarMass: 1e16 # Upper stellar mass limit for halo selection in Msun
+  maxNumHalos: 0 # Max number of halos to select in the given mass range
 
 ModelParameters:
   SKIRTboxsize: 100 # in kpc

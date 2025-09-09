@@ -12,7 +12,7 @@
             <LocalUniverseCosmology/>
         </cosmology>
         <sourceSystem type="SourceSystem">
-            <SourceSystem minWavelength="0.13 micron" maxWavelength="0.2 micron" wavelengths="0.55 micron" sourceBias="0.5">
+            <SourceSystem minWavelength="0.13 micron" maxWavelength="0.3 micron" wavelengths="0.55 micron" sourceBias="0.5">
                 <sources type="Source">
                     <ParticleSource filename="old_stars.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
                         <smoothingKernel type="SmoothingKernel">
@@ -29,6 +29,9 @@
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
+                        <sedFamily type="SEDFamily">
+                            <FSPSvarIMFSEDFamily sfrPeriod="Period0Myr">
+                        </sedFamily>
                         <sedFamily type="SEDFamily">
                             <ToddlersSEDFamily sedMode="SFRNormalized" stellarTemplate="BPASSChab100Bin" includeDust="false" resolution="High" sfrPeriod="Period0Myr"/>
                         </sedFamily>
@@ -222,6 +225,7 @@
                             <ConfigurableBandWavelengthGrid>
                                 <bands type="Band">
                                     <BroadBand bandName="GALEX FUV"/>
+                                    <BroadBand bandName="GALEX NUV"/>
                                 </bands>
                             </ConfigurableBandWavelengthGrid>
                         </wavelengthGrid>
