@@ -34,9 +34,8 @@ with open(f'{dir_path}/{param_file}','r') as stream:
 
 old_stars_tmin = unyt.unyt_quantity(params['ModelParameters']['starsMaxAge'], 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
 
-Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per gas particle
+Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per star particle
 binTreeMaxLevel = params['ModelParameters']['binTreeMaxLevel'] # Max refinement level of the spatial grid
-
 
 f = open(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt', 'r')
 header = f.readline() # Read first header line
@@ -58,90 +57,77 @@ def editSki(snapNum, haloID, Rstar):
 
     skifilename = params['InputFilepaths']['skiFilepath'].format(skifileversion=skifileversion)
 
-    print(skifilename)
-
     skifilename_halo = 'snap' + snapNum + '_ID' + haloID + '.ski'
 
+    if os.path.isfile(skifilename_halo):
+        subprocess.run(['mv', skifilename_halo, 'delete.me'])
 
-    subprocess.run(['cp', skifilename, skifilename_halo]) # copy the skirt file for each galaxy
 
     # Calculate max dust fraction based on particle data
 
     with warnings.catch_warnings():
         warnings.simplefilter('ignore') # Ignore warning if file is empty
-        gas_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_ID' + haloID + '_gas.txt')) # Calculate dust surface density from the 
+        gas_file = np.loadtxt(txtFilePath + 'snap' + snapNum + '_ID' + haloID + '_gas.txt') # Calculate dust surface density from the 
         # original gas particle data, to avoid issues with negative dust masses due to TODDLERS dust subtraction
+
+        Npp = Npp_per_par * len(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_gas.txt'))
     
-    Npp = Npp_per_par * len(gas_file)
+
+    if len(gas_file) > 0: 
+
+        subprocess.run(['cp', skifilename, skifilename_halo]) # copy the skirt file for each galaxy
+
+        if len(gas_file) == 1:
+
+            maxDustFraction = 10**(-4.5)
     
-    if np.shape(gas_file) == (1, 10): # Only one gas particle
+        else: # 2 or more gas particles
 
-        maxDustFraction = 10**(-4.5)
-    
-    elif np.size(gas_file, axis = 1) > 0: # 2 or more gas particles
+            gas_file = np.atleast_2d(gas_file)
 
-        dust_r = np.sqrt(gas_file[:, 0]**2 + gas_file[:, 1]**2 + gas_file[:, 2]**2) * 1e-3 # In kpc
-        dust_m = np.sum(gas_file[:, 7:], axis = 1) # In Msun
+            dust_r = np.sqrt(gas_file[:, 0]**2 + gas_file[:, 1]**2 + gas_file[:, 2]**2) * 1e-3 # In kpc
+            dust_m = np.sum(gas_file[:, 7:], axis = 1) # In Msun
 
 
-        dustMasses_sorted = dust_m[np.argsort(dust_r)]
+            dustMasses_sorted = dust_m[np.argsort(dust_r)]
 
-        idx_halfmass = np.min(np.argwhere((np.cumsum(dustMasses_sorted) / np.sum(dustMasses_sorted)) >= 0.5))
+            idx_halfmass = np.min(np.argwhere((np.cumsum(dustMasses_sorted) / np.sum(dustMasses_sorted)) >= 0.5))
 
-        dustHalfMassRadius = np.sort(dust_r)[idx_halfmass]
+            dustHalfMassRadius = np.sort(dust_r)[idx_halfmass]
 
-        dustHalfMass = (np.sum(dust_m) / 2.)
+            dustHalfMass = (np.sum(dust_m) / 2.)
 
-        SigmaDust = dustHalfMass / (np.pi * dustHalfMassRadius**2) # In solar masses / kpc^2
+            SigmaDust = dustHalfMass / (np.pi * dustHalfMassRadius**2) # In solar masses / kpc^2
 
-        maxDustFraction = np.clip(10**(-0.5 - np.log10(SigmaDust)), a_min = 10**(-6.5), a_max = 10**(-4.5))
+            maxDustFraction = np.clip(10**(-0.5 - np.log10(SigmaDust)), a_min = 10**(-6.5), a_max = 10**(-4.5))
 
-        subprocess.run(['perl', '-pi', '-e', 's/maxLevel=\"0/maxLevel=\"' + str(binTreeMaxLevel) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/maxLevel=\"0/maxLevel=\"' + str(binTreeMaxLevel) + '/g', skifilename_halo])
 
-        subprocess.run(['perl', '-pi', '-e', 's#dust.txt#' + SKIRTinputFiles + '_dust.txt#g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's#dust.txt#' + SKIRTinputFiles + '_dust.txt#g', skifilename_halo])
 
-        subprocess.run(['perl', '-pi', '-e', 's/minX=\"-0/minX=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
-        subprocess.run(['perl', '-pi', '-e', 's/maxX=\"0/maxX=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
-        subprocess.run(['perl', '-pi', '-e', 's/minY=\"-0/minY=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
-        subprocess.run(['perl', '-pi', '-e', 's/maxY=\"0/maxY=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
-        subprocess.run(['perl', '-pi', '-e', 's/minZ=\"-0/minZ=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
-        subprocess.run(['perl', '-pi', '-e', 's/maxZ=\"0/maxZ=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/minX=\"-0/minX=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/maxX=\"0/maxX=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/minY=\"-0/minY=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/maxY=\"0/maxY=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/minZ=\"-0/minZ=\"' + str(-SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
+            subprocess.run(['perl', '-pi', '-e', 's/maxZ=\"0/maxZ=\"' + str(SKIRTboxsize.to('pc').value / 2.) + '/g', skifilename_halo])
 
-        subprocess.run(['perl', '-pi', '-e', 's/maxDustFraction=\"0/maxDustFraction=\"' + str(maxDustFraction) + '/g', skifilename_halo])
-
-    else:
-    
-        # Change the skirt simulation to noMedium
-
-        subprocess.run(['perl', '-pi', '-e', 's/simulationMode=\"DustEmission/simulationMode=\"NoMedium/g', skifilename_halo])
-
-        with open(skifilename_halo, 'r+') as fp:
-            # read and store all lines into list
-            lines = fp.readlines()
-            # move file pointer to the beginning of a file
-            fp.seek(0)
-            # truncate the file
-            fp.truncate()
-
-            # start writing lines
-            # iterate line and line number
-            for number, line in enumerate(lines):
-                if number <= 40 or number >= 216:
-                    fp.write(line)
+            subprocess.run(['perl', '-pi', '-e', 's/maxDustFraction=\"0/maxDustFraction=\"' + str(maxDustFraction) + '/g', skifilename_halo])
 
 
-    subprocess.run(['perl', '-pi', '-e', 's/numPackets=\"0/numPackets=\"' + str(Npp) + '/g', skifilename_halo])
 
-    subprocess.run(['perl', '-pi', '-e', 's#old_stars#' + SKIRTinputFiles + '_old_stars#g', skifilename_halo])
-    subprocess.run(['perl', '-pi', '-e', 's#starforming_gas#' + SKIRTinputFiles + '_starforming_gas#g', skifilename_halo])
-    subprocess.run(['perl', '-pi', '-e', 's/Period0/Period' + str(int(old_stars_tmin.to('Myr').value)) + '/g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's/numPackets=\"0/numPackets=\"' + str(Npp) + '/g', skifilename_halo])
 
-    subprocess.run(['perl', '-pi', '-e', 's/radius=\"1 Rstar/radius=\"' + str(Rstar) + ' kpc' +  '/g', skifilename_halo])
-    subprocess.run(['perl', '-pi', '-e', 's/radius=\"3 Rstar/radius=\"' + str(3. * Rstar) + ' kpc' +  '/g', skifilename_halo])
-    subprocess.run(['perl', '-pi', '-e', 's/radius=\"5 Rstar/radius=\"' + str(5. * Rstar) + ' kpc' +  '/g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's#old_stars#' + SKIRTinputFiles + '_old_stars#g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's#starforming_gas#' + SKIRTinputFiles + '_starforming_gas#g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's/Period0/Period' + str(int(old_stars_tmin.to('Myr').value)) + '/g', skifilename_halo])
+
+        subprocess.run(['perl', '-pi', '-e', 's/radius=\"1 Rstar/radius=\"' + str(Rstar) + ' kpc' +  '/g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's/radius=\"3 Rstar/radius=\"' + str(3. * Rstar) + ' kpc' +  '/g', skifilename_halo])
+        subprocess.run(['perl', '-pi', '-e', 's/radius=\"5 Rstar/radius=\"' + str(5. * Rstar) + ' kpc' +  '/g', skifilename_halo])
 
     return None
 
 editSki(snapNum, haloID, Rstar)
 
-print('Elapsed time to edit ski file and calculate dust surface density:', datetime.now() - startTime)
+# print('Elapsed time to edit ski file and calculate dust surface density:', datetime.now() - startTime)

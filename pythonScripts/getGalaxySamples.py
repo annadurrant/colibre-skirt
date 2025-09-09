@@ -42,6 +42,13 @@ parser.add_argument(
     help="Running in vIMF mode (default: false).",
 )
 
+parser.add_argument(
+    "--nchunks",
+    type=int,
+    default=1,
+    help="Number of chunks to split the galaxy sample into.",
+)
+
 
 args = parser.parse_args()
 
@@ -98,8 +105,8 @@ for snap in args.snaps:
 
     sample_file = np.vstack((halo_track_IDs, Mstar.to('Msun').value, Rstar.to('kpc').value)).T[SEL, :]
 
-    if ngal > 1e5:
-        nproc = 64
+    if args.nchunks > 1:
+        nproc = args.nchunks
         gal_per_slice = int(ngal/nproc)
         gals_slice_collections = []
         for i in range(nproc):
@@ -120,3 +127,24 @@ for snap in args.snaps:
     # But still save whole sample too
 
     np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', sample_file, fmt = ['%d', '%.6e', '%.4f'], header = header)
+
+def regenerate_sample_file(simName,snap):
+    sample_file = np.loadtxt(sampleFolder + 'sample_' + str(snap) + '.txt')
+
+    output_files = os.listdir(simName + '/SKIRT/OutputFiles/{snap:03d}')
+
+    rerun = []
+    for i,ID in enumerate(sample_file[:,0]):
+        ID = int(ID)
+        if f'snap{snap}_ID{ID}_SED_50kpc_sed.dat' not in output_files:
+            rerun.append(sample_file[i])
+    print(len(sample_file))
+    print(len(rerun))
+
+    os.system(f'mv {sampleFolder}sample_{str(snap)}.txt {sampleFolder}sample_{str(snap)}.txt~')
+
+    header = 'Column 1: Halo ID\n' + \
+            'Column 2: Stellar mass (Msun)\n' + \
+            'Column 3: Stellar half-mass radius (kpc)\n'
+
+    np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', rerun, fmt = ['%d', '%.6e', '%.4f'], header = header)

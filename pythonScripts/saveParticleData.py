@@ -167,15 +167,13 @@ def analysis(sg, halo_ID, Mstar, snap, angular_momentum_vector):
 
     stars_x, stars_y, stars_z = stars_coordinates.T
     # Recalculate stellar smoothing lengths, following COLIBRE tutorials
-    starsSml_threshold = 10 * np.min(sg.stars.masses) # must be at least 10 star particles to generate smoothing lengths from stars
-
-    if Mstar >= starsSml_threshold:
-        stars_sml_fromStars = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
-                        kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical()
-    else:
-        stars_sml_fromStars = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932
+    stars_sml_fromStars = gsl((sg.stars.coordinates + sg.centre) % sg.metadata.boxsize, sg.metadata.boxsize,
+                    kernel_gamma = 1.0, neighbours = 65, speedup_fac = 2, dimension = 3).to('pc').to_physical()
     
     stars_sml_fromGas = sg.stars.smoothing_lengths.to('pc').to_physical() * 2.018932 # Using neighbouring gas particles
+    
+    if np.inf in stars_sml_fromStars:
+        stars_sml_fromStars = stars_sml_fromGas
     stars_Z = sg.stars.metal_mass_fractions.to_physical()
     stars_Minit = sg.stars.initial_masses.to('Msun').to_physical()
     stars_Mcurr = sg.stars.masses.to('Msun').to_physical()
@@ -249,7 +247,6 @@ for snap in args.snaps:
 
     if args.distr != -1:
         sampleFile = sampleFolder + '/sample_' + str(snap) + '/sample_' + str(snap) + '.' + str(args.distr) + '.txt'
-        print('sampleFile: ', sampleFile)
         halo_IDs = np.loadtxt(sampleFile, usecols = 0)
     else:
         halo_IDs = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', usecols = 0)

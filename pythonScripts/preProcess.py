@@ -1,8 +1,3 @@
-"""
-Run a set of SKIRT simulations for given halo indices.
-Created by Andrea Gebek on 29.11.2024
-"""
-
 import numpy as np
 import subprocess
 from multiprocessing import Pool
@@ -13,6 +8,11 @@ import os
 
 parser = argparse.ArgumentParser(
     description="Run a set of SKIRT simulations for given halo indices."
+)
+
+# Set simName if needed for output files
+parser = argparse.ArgumentParser(
+    description="Collect SKIRT run files."
 )
 
 parser.add_argument(
@@ -28,9 +28,10 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "snap",
+    "--snaps",
     type=int,
-    help="<Required> Snapshot number.",
+    nargs='+',
+    help="<Required> Snapshot number(s).",
 )
 
 parser.add_argument(
@@ -38,20 +39,6 @@ parser.add_argument(
         type=int,
         default=None,
         help="HBT track ID to run SKIRT simulations for (default: None, uses sample.txt file for IDs).",
-)
-
-parser.add_argument(
-        "--n_processes",
-        type=int,
-        default=16,
-        help="Number of SKIRT simulations you want to run in parallel (default: 16)",
-)
-
-parser.add_argument(
-        "--n_threads",
-        type=int,
-        default=4,
-        help="Number of threads to run each SKIRT simulation on (default: 4).",
 )
 
 parser.add_argument(
@@ -66,10 +53,6 @@ parser.add_argument(
     default=-1,
 )
 
-parser.add_argument(
-    "--rerun",
-    action="store_true",
-)
 
 args = parser.parse_args()
 
@@ -88,53 +71,48 @@ txtFilePath = params['OutputFilepaths']['storeParticlesPath'].format(simPath=sim
 SKIRTinputFilePath = params['OutputFilepaths']['SKIRTinputFilePath'].format(simPath=simPath,rotation=params['ModelParameters']['rotation']) # Path where the SKIRT input files will be stored
 SKIRToutputFilePath = params['OutputFilepaths']['SKIRToutputFilePath'].format(simPath=simPath,rotation=params['ModelParameters']['rotation']) # Path where the SKIRT output files will be stored
 
+# Make output directories 
+os.system(f'mkdir -p {SKIRTinputFilePath}')
+os.system(f'mkdir -p {os.path.dirname(SKIRToutputFilePath)}')
+os.system(f'mkdir -p {SKIRToutputFilePath}')
+
 SKIRToutputFilePath += args.outputDir
+os.system(f'mkdir -p {SKIRToutputFilePath}')
 
 # Set list of snapshots to postprocess
 
-Nprocesses = args.n_processes
+for snap in args.snaps:
 
-def runSKIRT(skifilename):
+    startTime = datetime.now()
 
-    # Run skirt
-
-    subprocess.run(['skirt', '-t', str(args.n_threads), '-b', skifilename]) # Run SKIRT with 4 threads (that's apparently quite optimal)
-    # The -b option reduces the verbosity of the log (but the saved log file still contains all logging information)
-
-    return skifilename
-
-def postprocess(snap):
-
-    # Get the SKIRT output files and move them to the output folder
-
-    files = os.listdir(SKIRToutputFilePath)
-
-    for fi in files:
-        if ('.ski' in fi) or ('_convergence.dat' in fi) or ('parameters.xml' in fi) or ('_log.txt' in fi):
-            os.system(f'rm {fpath}/{fi}')
-
-    subprocess.run(['python', f'{dir_path}/pythonScripts/saveGalaxyDataset.py', simName, snap, outputDir])
-
-def main():
-
-    snap = args.snap
-
-    if args.rerun == False:
-        skifilenames = os.listdir(SKIRToutputFilePath)
-
+    if args.distr != -1:
+        sampleFile = sampleFolder + '/sample_' + str(snap) + '/sample_' + str(snap) + '.' + str(args.distr) + '.txt'
+        halo_IDs, Rstar = np.loadtxt(sampleFile, unpack = True, usecols = [0, 2])
     else:
-        ID_list = np.loadtxt(sampleFolder + f'/sample_{snap}.txt',usecols=0)
-        skifilenames = [f'snap{snap}_ID{int(ID)}.ski' for ID in ID_list]
+        halo_IDs,Rstar = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', unpack = True, usecols = [0, 2])
 
-    print('Number of SKIRT simulation to run: ', len(skifilenames))
+    halo_IDs = halo_IDs.astype(int)
 
-    with Pool(processes = Nprocesses) as pool:
+    for idx, ID in enumerate(halo_IDs):
+
+        if args.ID != None and ID != args.ID:
+            continue
+
+        if idx%100 == 0:
+            print(f'Running {idx}th halo in subset.',flush=True)
+
+        skifilename = 'snap' + str(snap) + '_ID' + str(ID)
+
+        if os.path.isfile(skifilename + '.ski'):
+            continue
         
-        pool.map(runSKIRT, skifilenames)
+        else:
 
-    postprocess(args.snaps)
+            # Save SKIRT input files
+            subprocess.run(['python', f'{dir_path}/pythonScripts/saveSKIRTinput.py', str(snap), str(ID), txtFilePath, SKIRTinputFilePath, str(args.vIMF)])
 
-if __name__=="__main__":
+            # Edit ski files
 
-    main()
+            subprocess.run(['python', f'{dir_path}/pythonScripts/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath, simPath, str(args.vIMF)])
 
+    print(f'Elapsed time to save SKIRT input files and .ski files for snap {snap}:', datetime.now() - startTime)
