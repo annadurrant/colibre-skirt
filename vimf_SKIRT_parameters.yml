@@ -1,6 +1,6 @@
 InputFilepaths:
-  skiFilepath: "/mnt/aridata1/users/ariadurr/WORK/Processing/colibre-skirt/vimf_template_v{skifileversion}.ski" # The path to the ski file
-  simPath: "/mnt/aridata1/users/ariadurr/WORK/Simulations/{simName}" # Path to COLIBRE simulation
+  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/vimf_template_v{skifileversion}.ski" # The path to the ski file
+  simPath: "/mnt/aridata1/users/ariadurr/COLIBRE/Simulations/{simName}" # Path to COLIBRE simulation
   catalogueFile: "{simPath}/SOAP/halo_properties_vimf_{snap_nr:04d}.hdf5"
 
   # If the snapshots are distributed
@@ -21,6 +21,7 @@ SelectionCriteria:
   minStellarMass: 1.0e4 # Lower stellar mass limit for halo selection in Msun
   maxStellarMass: 1e16 # Upper stellar mass limit for halo selection in Msun
   maxNumHalos: 0 # Max number of halos to select in the given mass range
+  maxUVMagnitude: -16
 
 ModelParameters:
   SKIRTboxsize: 100 # in kpc
