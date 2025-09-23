@@ -86,7 +86,7 @@ def editSki(snapNum, haloID, Rstar):
             gas_file = np.atleast_2d(gas_file)
 
             dust_r = np.sqrt(gas_file[:, 0]**2 + gas_file[:, 1]**2 + gas_file[:, 2]**2) * 1e-3 # In kpc
-            dust_m = np.sum(gas_file[:, 7:], axis = 1) # In Msun
+            dust_m = np.sum(gas_file[:, 10:16], axis = 1) # In Msun
 
 
             dustMasses_sorted = dust_m[np.argsort(dust_r)]
