@@ -88,8 +88,17 @@ for snap in args.snaps:
         SEL = np.isin(halo_track_IDs, args.IDs)
     
     else:
-        SEL = (Mstar >= unyt.unyt_quantity(float(params['SelectionCriteria']['minStellarMass']), 'Msun')) * (Mstar <= unyt.unyt_quantity(float(params['SelectionCriteria']['maxStellarMass']), 'Msun')) # Simple stellar mass selection. Replace this with 
-        # your selection criteria.
+
+        if float(params['SelectionCriteria']['maxUVMagnitude']) != 0 :
+
+                Luv = unyt.unyt_array(catalogue.projected_aperture_50kpc_projz.corrected_stellar_luminosity.to_physical()[:,4])
+                minUV = 10 ** (-0.4 * unyt.unyt_quantity(float(params['SelectionCriteria']['maxUVMagnitude']), 'dimensionless'))
+
+                SEL = (Luv >= minUV) 
+
+        else:
+            SEL = (Mstar >= unyt.unyt_quantity(float(params['SelectionCriteria']['minStellarMass']), 'Msun')) * \
+                (Mstar <= unyt.unyt_quantity(float(params['SelectionCriteria']['maxStellarMass']), 'Msun'))
 
         max_number = params['SelectionCriteria']['maxNumHalos']
         if max_number > 0:
