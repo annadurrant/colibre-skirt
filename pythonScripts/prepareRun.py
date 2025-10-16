@@ -87,9 +87,11 @@ for snap in args.snaps:
 
     if args.distr != -1:
         sampleFile = sampleFolder + '/sample_' + str(snap) + '/sample_' + str(snap) + '.' + str(args.distr) + '.txt'
-        halo_IDs, Rstar = np.loadtxt(sampleFile, unpack = True, usecols = [0, 2])
     else:
-        halo_IDs,Rstar = np.loadtxt(sampleFolder + '/sample_' + str(snap) + '.txt', unpack = True, usecols = [0, 2])
+        sampleFile = sampleFolder + '/sample_' + str(snap) + '.txt'
+    
+    halo_IDs, Rstar, Mdust, Rdust = np.loadtxt(sampleFile, unpack = True, usecols = [0, 2, 3, 4])
+    SigmaDust = Mdust / (2 * np.pi * Rdust**2) # Dust surface density
 
     halo_IDs = halo_IDs.astype(int)
 
@@ -113,6 +115,6 @@ for snap in args.snaps:
 
             # Edit ski files
 
-            subprocess.run(['python', f'{dir_path}/pythonScripts/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), txtFilePath, SKIRTinputFilePath, simPath, str(args.vIMF)])
+            subprocess.run(['python', f'{dir_path}/pythonScripts/editSkiFile.py', str(snap), str(ID), str(Rstar[idx]), str(SigmaDust[idx]), txtFilePath, SKIRTinputFilePath, simPath, str(args.vIMF)])
 
     print(f'Elapsed time to save SKIRT input files and .ski files for snap {snap}:', datetime.now() - startTime)

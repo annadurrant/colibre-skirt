@@ -45,6 +45,10 @@ SKIRTboxsize = unyt.unyt_quantity(min(SKIRTboxsize0, SKIRTboxsize0 * 1.8 / 0.7 *
 
 if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dust.txt') == False:
 
+    # Input files have not been generated so continue here
+
+    # Star particles
+    #
     with warnings.catch_warnings():
         warnings.simplefilter('ignore') # Ignore warning if file is empty
         stars_file = np.atleast_2d(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt'))
@@ -118,8 +122,8 @@ if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dus
         gas_z = unyt.unyt_array(gas_file[:, 2], 'pc')
         gas_sml = unyt.unyt_array(gas_file[:, 3], 'pc')
         gas_Z = unyt.unyt_array(gas_file[:, 4], 'dimensionless')
-        gas_SFR = unyt.unyt_array(gas_file[:, 8], 'Msun/yr')
-        # gas_SFR = unyt.unyt_array(gas_file[:, 9], 'Msun/yr') # 10 Myr average SFR
+        # gas_SFR = unyt.unyt_array(gas_file[:, 8], 'Msun/yr') # instant SFR
+        gas_SFR10Myr = unyt.unyt_array(gas_file[:, 9], 'Msun/yr')
         gas_Mdust = unyt.unyt_array(gas_file[:, 10:], 'Msun')
 
         # Dust
@@ -137,9 +141,9 @@ if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dus
         gas_SFE = unyt.unyt_array(np.full(len(gas_sml), 0.025), 'dimensionless') # Star-formation efficiency, 2.5%
         gas_n_cl = unyt.unyt_array(np.full(len(gas_sml), 320.), '1/cm**3') # Cloud density
 
-        starforming_gas_mask = (gas_SFR > 0.)
+        starforming_gas_mask = (gas_SFR10Myr > 0.)
 
-        starforming_gas_params = np.transpose([gas_x, gas_y, gas_z, gas_sml, gas_Z, gas_SFE, gas_n_cl, gas_SFR])[starforming_gas_mask, :]
+        starforming_gas_params = np.transpose([gas_x, gas_y, gas_z, gas_sml, gas_Z, gas_SFE, gas_n_cl, gas_SFR10Myr])[starforming_gas_mask, :]
 
     else:
 
@@ -155,8 +159,7 @@ if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dus
                 'Column 5: metallicity (1)\n' + \
                 'Column 6: star formation efficiency (1)\n' + \
                 'Column 7: cloud density (1/cm3)\n' + \
-                'Column 8: star formation rate (Msun/yr)\n'
-                # 'Column 8: star formation rate averaged over 10 Myr (Msun/yr)\n'
+                'Column 8: star formation rate averaged over 10 Myr (Msun/yr)\n'
 
     np.savetxt(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_starforming_gas.txt', starformingregions_params, fmt = '%.6e', header = starforming_gas_header)
 

@@ -68,26 +68,29 @@ os.system(f'mkdir -p {os.path.dirname(sampleFolder)}')
 os.system(f'mkdir -p {sampleFolder}')
 
 header = 'Column 1: Halo ID\n' + \
-         'Column 2: Stellar mass (Msun)\n' + \
-         'Column 3: Stellar half-mass radius (kpc)\n'
+         'Column 2: Total stellar mass (Msun)\n' + \
+         'Column 3: Stellar half-mass radius (kpc)\n' + \
+         'Column 4: 50-kpc exclusive-sphere dust mass (Msun)\n' + \
+         'Column 5: Total dust mass (Msun)\n'
 
 for snap in args.snaps:
     
     catalogue_file = params['InputFilepaths']['catalogueFile'].format(simPath=simPath,snap_nr=snap)
     catalogue = load_snapshot(catalogue_file)
    
-    if args.vIMF == False:
-        halo_track_IDs = catalogue.input_halos_hbtplus.track_id.value
-    else: #required for now, I don't think older SOAP had hbt tracking ids included
-        halo_track_IDs = catalogue.input_halos.halo_catalogue_index.value
-
     Mstar = unyt.unyt_array(catalogue.bound_subhalo.stellar_mass.to_physical())
     Rstar = unyt.unyt_array(catalogue.bound_subhalo.half_mass_radius_stars.to_physical())
+    Mdust = unyt.unyt_array(catalogue.exclusive_sphere_50kpc.dust_small_grain_mass.to_physical() + catalogue.exclusive_sphere_50kpc.dust_large_grain_mass.to_physical())
+    Rdust = unyt.unyt_array(catalogue.bound_subhalo.half_mass_radius_dust.to_physical())
 
     if args.IDs != -1:
-        SEL = np.isin(halo_track_IDs, args.IDs)
+        # Select based on specific input IDs
+        halo_IDs = catalogue.input_halos_hbtplus.track_id.value
+        SEL = np.isin(halo_IDs, args.IDs)
     
     else:
+
+        halo_IDs = catalogue.input_halos.halo_catalogue_index.value
 
         if float(params['SelectionCriteria']['maxUVMagnitude']) != 0 :
 
@@ -100,20 +103,21 @@ for snap in args.snaps:
             SEL = (Mstar >= unyt.unyt_quantity(float(params['SelectionCriteria']['minStellarMass']), 'Msun')) * \
                 (Mstar <= unyt.unyt_quantity(float(params['SelectionCriteria']['maxStellarMass']), 'Msun'))
 
-        max_number = params['SelectionCriteria']['maxNumHalos']
-        if max_number > 0:
-            count = 0
-            for sel_i,selection in enumerate(SEL):
-                if selection == True and count == max_number:
-                    SEL[sel_i] = False
-                elif selection == True:
-                    count += 1
+        # remove dust-free haloes
+        SEL *= (Mdust > 0)
+
 
     ngal = len(SEL[SEL])
     print(ngal, 'galaxies selected in snapshot', snap)
 
-    sample_file = np.vstack((halo_track_IDs, Mstar.to('Msun').value, Rstar.to('kpc').value)).T[SEL, :]
+    sample_file = np.vstack((
+        halo_IDs, Mstar.to('Msun').value, 
+        Rstar.to('kpc').value, 
+        Mdust.to('Msun').value,
+        Rdust.to('kpc').value, 
+    )).T[SEL, :]
 
+    # Split sample into nchunks for faster processing
     if args.nchunks > 1:
         nproc = args.nchunks
         gal_per_slice = int(ngal/nproc)
@@ -127,33 +131,10 @@ for snap in args.snaps:
 
         os.system(f'mkdir -p {sampleFolder}/sample_{snap}')
 
-
         for id,collection in enumerate(gals_slice_collections):
             sample_slice = sample_file[collection[0]:collection[-1]+1]
-
-            np.savetxt(sampleFolder + f'/sample_{snap}/sample_{snap}.{id}.txt',sample_slice, fmt = ['%d', '%.6e', '%.4f'], header = header)
+            np.savetxt(sampleFolder + f'/sample_{snap}/sample_{snap}.{id}.txt',sample_slice, fmt = ['%d', '%.6e', '%.4f', '%.6e', '%.4f'], header = header)
 
     # But still save whole sample too
 
-    np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', sample_file, fmt = ['%d', '%.6e', '%.4f'], header = header)
-
-def regenerate_sample_file(simName,snap):
-    sample_file = np.loadtxt(sampleFolder + 'sample_' + str(snap) + '.txt')
-
-    output_files = os.listdir(simName + '/SKIRT/OutputFiles/{snap:03d}')
-
-    rerun = []
-    for i,ID in enumerate(sample_file[:,0]):
-        ID = int(ID)
-        if f'snap{snap}_ID{ID}_SED_50kpc_sed.dat' not in output_files:
-            rerun.append(sample_file[i])
-    print(len(sample_file))
-    print(len(rerun))
-
-    os.system(f'mv {sampleFolder}sample_{str(snap)}.txt {sampleFolder}sample_{str(snap)}.txt~')
-
-    header = 'Column 1: Halo ID\n' + \
-            'Column 2: Stellar mass (Msun)\n' + \
-            'Column 3: Stellar half-mass radius (kpc)\n'
-
-    np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', rerun, fmt = ['%d', '%.6e', '%.4f'], header = header)
+    np.savetxt(sampleFolder + 'sample_' + str(snap) + '.txt', sample_file, fmt = ['%d', '%.6e', '%.4f', '%.6e', '%.4f'], header = header)
