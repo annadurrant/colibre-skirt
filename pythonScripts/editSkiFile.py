@@ -40,7 +40,7 @@ with open(f'{dir_path}/{param_file}','r') as stream:
 
 old_stars_tmin = unyt.unyt_quantity(params['ModelParameters']['starsMaxAge'], 'Myr') # Minimum age in Myr for an evolved star particle. Also determines the TODDLERS averaging timescale
 
-Npp_per_par = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets per star particle
+Npp = int(float(params['ModelParameters']['photonPackets'])) # Number of photon packets
 binTreeMaxLevel = params['ModelParameters']['binTreeMaxLevel'] # Max refinement level of the spatial grid
 
 f = open(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt', 'r')
@@ -83,7 +83,7 @@ def editSki(snapNum, haloID, Rstar, SigmaDust):
     
     subprocess.run(['perl', '-pi', '-e', 's/maxDustFraction=\"0/maxDustFraction=\"' + str(maxDustFraction) + '/g', skifilename_halo])
 
-    Npp = Npp_per_par * len(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt'))
+    # Npp = Npp_per_par * len(np.loadtxt(txtFilePath + 'snap' + snapNum + '_' + 'ID' + haloID + '_stars.txt'))
     subprocess.run(['perl', '-pi', '-e', 's/numPackets=\"0/numPackets=\"' + str(Npp) + '/g', skifilename_halo])
 
     subprocess.run(['perl', '-pi', '-e', 's#old_stars#' + SKIRTinputFiles + '_old_stars#g', skifilename_halo])

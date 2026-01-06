@@ -71,7 +71,7 @@ header = 'Column 1: Halo ID\n' + \
          'Column 2: Total stellar mass (Msun)\n' + \
          'Column 3: Stellar half-mass radius (kpc)\n' + \
          'Column 4: 50-kpc exclusive-sphere dust mass (Msun)\n' + \
-         'Column 5: Total dust mass (Msun)\n'
+         'Column 5: Dust half-mass radius (kpc)\n'
 
 for snap in args.snaps:
     
@@ -94,7 +94,7 @@ for snap in args.snaps:
 
         if float(params['SelectionCriteria']['maxUVMagnitude']) != 0 :
 
-                Luv = unyt.unyt_array(catalogue.projected_aperture_50kpc_projz.corrected_stellar_luminosity.to_physical()[:,4])
+                Luv = unyt.unyt_array(catalogue.projected_aperture_50kpc_projz.corrected_stellar_luminosity.to_physical()[:,0])
                 minUV = 10 ** (-0.4 * unyt.unyt_quantity(float(params['SelectionCriteria']['maxUVMagnitude']), 'dimensionless'))
 
                 SEL = (Luv >= minUV) 

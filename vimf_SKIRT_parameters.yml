@@ -25,6 +25,6 @@ SelectionCriteria:
 ModelParameters:
   SKIRTboxsize: 100 # in kpc
   starsMaxAge: 0 # in Myr, stars younger than this age are modelled from SF gas. This must match TODDLERS SFR period.
-  photonPackets: 1e2 # Number of photon packets per star particle
+  photonPackets: 1e5 # Number of photon packets
   binTreeMaxLevel: 36 # Max refinement level of the spatial grid
   rotation: "None" # Option to rotate galaxy based on the angular momentum vector of stars

@@ -32,11 +32,20 @@ parser.add_argument(
     help="Name of output directory.",
 )
 
-# parser.add_argument(
-#     "--SOAP",
-#     action="store_true",
-#     help="Also store data to SOAP catalogue.",
-# )
+parser.add_argument(
+    "--SOAP",
+    action="store_true",
+    help="Also store data to SOAP catalogue.",
+)
+
+parser.add_argument(
+    "--IDs",
+    type=int,
+    nargs='+',
+    default=-1,
+    help="Halo IDs to run SKIRT simulations for, based on HBT track IDs.",
+)
+
 
 args = parser.parse_args()
 
@@ -73,11 +82,18 @@ def loop_luminosity(idx):
         sed_50 = 1e12 * np.loadtxt( SKIRToutputFilePath + f'/snap{args.snap}_ID{idx}_SED_50kpc_sed.dat',usecols=1) / 3631 #Jy
 
         fuv_tot, fuv_10, fuv_50 = sed_tot[0], sed_10[0], sed_50[0] 
-        beta_50 = np.log10(sed_50[1]/sed_50[0]) / np.log10(wavelengths[1]/wavelengths[0])
+
+        # for beta slopes, convert from freq. flux to wavelength flux
+        convert_fuv = (1/1350 - 1/1750) / (1750 - 1350) 
+        convert_nuv = (1/1750 - 1/2800) / (2800 - 1750) 
+        beta_50 = np.log10( sed_50[1]/sed_50[0] * convert_nuv/convert_fuv ) / np.log10(wavelengths[1]/wavelengths[0])
+        # or is the conversion factor just between the central wavelengths?
+        beta_50 = np.log10( sed_50[1]/sed_50[0] * (wavelengths[0]/wavelengths[1]**2) ) / np.log10(wavelengths[1]/wavelengths[0])
+        
 
         return (dset_id, fuv_tot, fuv_10, fuv_50, beta_50)
 
-def create_skirt_lum_dst():
+def create_skirt_lum_dset():
 
     with h5.File(catalogue_file) as fi:
         soap_dset = fi['BoundSubhalo/CorrectedStellarLuminosity']
@@ -120,8 +136,6 @@ def create_skirt_lum_dst():
     output_filepath = params['OutputFilepaths']['GalaxyLuminositiesFilepath'].format(simPath=simPath,snap_nr=args.snap)
     output_fi = h5.File(output_filepath,'a')
 
-    print(output_filepath)
-
     grp_names = ['BoundSubhalo','ProjectedAperture/10kpc/projz','ProjectedAperture/50kpc/projz']
 
     # First save luminosities and extinction factors
@@ -142,38 +156,78 @@ def create_skirt_lum_dst():
 
     output_fi.close()
 
-    # if args.SOAP == True:
-    #     with h5.File(catalogue_file,'a') as dst_fi, h5.File(output_filepath,'a') as src_fi:
-    #         src_fi.copy(src_fi['ProjectedAperture/50kpc/projz/FUVStellarLuminosity'],dst_fi['ProjectedAperture/50kpc/projz'],'CorrectedStellarLuminosityWithSKIRT')
-    #     src_fi.close()
-    #     dst_fi.close()
+    if args.SOAP == True:
+        with h5.File(catalogue_file,'a') as dst_fi, h5.File(output_filepath,'a') as src_fi:
+            src_fi.copy(src_fi['ProjectedAperture/50kpc/projz/FUVStellarLuminosity'],dst_fi['ProjectedAperture/50kpc/projz'],'CorrectedStellarLuminosityWithSKIRT')
+        src_fi.close()
+        dst_fi.close()
 
-    # print('Done.', flush=True)
+    print('Done.', flush=True)
 
-def loopSml(id):
+
+def create_average_sml_dst():
     # Compute mass weighted smoothing lengths from particle files
+
+    def loopSml(id):
+        dset_id = np.where(halo_IDs == id)[0][0]
+        stars_file = np.loadtxt(storeParticlesPath + f'/snap{args.snap}_ID{id}_stars.txt').T
+
+        minitials = stars_file[5]
+        smls = stars_file[3]
+        massweighted_sml = minitials * smls / np.sum(minitials)
+        smooothingLength = np.mean(massweighted_sml)
+
+        return (dset_id, smooothingLength)
+
+    SmoothingLengths = np.zeros_like(halo_IDs, dtype=float)
+
+    with multiprocessing.Pool(processes=64) as pool:
+        results = pool.map(loopSml, sample_IDs)
+
+    for idx, value in results:
+        SmoothingLengths[idx] = value
+
+    output_fi = h5.File(output_filepath,'a')
+    output_fi.create_dataset('BoundSubhalo/InitialMassWeightedSmoothingLength',data=SmoothingLengths)
+    output_fi.close()
+
+def check_error():
+
+    n_err = 0
+    redo_ids = []
+
     
-    dset_id = np.where(halo_IDs == id)[0][0]
-    stars_file = np.loadtxt(storeParticlesPath + f'/snap{args.snap}_ID{id}_stars.txt').T
+    if args.IDs != -1:
+        IDs = args.IDs
+    else:
+        IDs = np.loadtxt(sampleFilepath + f'sample_{args.snap}.txt')[:,0]
 
-    minitials = stars_file[5]
-    smls = stars_file[3]
-    massweighted_sml = minitials * smls / np.sum(minitials)
-    smooothingLength = np.mean(massweighted_sml)
+    errors = np.zeros_like(IDs, dtype = float)
+    for i,idx in enumerate(IDs):
 
-    return (dset_id, smooothingLength)
+        stats_file = np.loadtxt(SKIRToutputFilePath + f'/snap{args.snap}_ID{int(idx)}_SED_tot_sedstats.dat')
+        N = stats_file[0][1]
+        w1 = stats_file[0][2]
+        w2 = stats_file[0][3]
+        err = np.sqrt( w2/w1**2 - 1/N )
+        if err > 0.1:
+            n_err += 1
+            redo_ids.append(idx)
+        errors[i] = err
 
-# Compute mass-weighted mean Sml  
-# SmoothingLengths = np.zeros_like(halo_IDs, dtype=float)
+    print(f'snapshot {args.snap}')
+    print(f'There are {n_err} galaxies with R > 0.1.')
+    if n_err > 0:
+        print('These are:')
+        for idx in redo_ids:
+            print(int(idx))
+    
+    ids_with_errors = np.array([ IDs, errors]).T
 
-# with multiprocessing.Pool(processes=64) as pool:
-#     results = pool.map(loopSml, sample_IDs)
+    header = 'Column 1: Halo ID\n' + \
+             'Column 2: Relative error R \n'
+    
+    np.savetxt(sampleFilepath + f'/relative_error_{args.snap}.txt', ids_with_errors, fmt = ['%d', '%.6f'], header = header)
 
-# for idx, value in results:
-#     SmoothingLengths[idx] = value
-
-# output_fi = h5.File(output_filepath,'a')
-# output_fi.create_dataset('BoundSubhalo/InitialMassWeightedSmoothingLength',data=SmoothingLengths)
-# output_fi.close()
-
-create_skirt_lum_dst()
+# create_skirt_lum_dset()
+check_error()

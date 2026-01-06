@@ -6,13 +6,13 @@
             <Random seed="0"/>
         </random>
         <units type="Units">
-            <ExtragalacticUnits wavelengthOutputStyle="Wavelength" fluxOutputStyle="Frequency"/>
+            <ExtragalacticUnits wavelengthOutputStyle="Wavelength" fluxOutputStyle="Wavelength"/>
         </units>
         <cosmology type="Cosmology">
             <LocalUniverseCosmology/>
         </cosmology>
         <sourceSystem type="SourceSystem">
-            <SourceSystem minWavelength="0.13 micron" maxWavelength="0.3 micron" wavelengths="0.55 micron" sourceBias="0.5">
+            <SourceSystem minWavelength="0.125 micron" maxWavelength="0.28 micron" wavelengths="0.25 micron" sourceBias="0.5">
                 <sources type="Source">
                     <ParticleSource filename="old_stars.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
                         <smoothingKernel type="SmoothingKernel">
@@ -25,20 +25,6 @@
                             <DefaultWavelengthDistribution/>
                         </wavelengthBiasDistribution>
                     </ParticleSource>
-                    <!-- <ParticleSource filename="starforming_gas.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
-                        <smoothingKernel type="SmoothingKernel">
-                            <QuarticSplineSmoothingKernel/>
-                        </smoothingKernel>
-                        <sedFamily type="SEDFamily">
-                            <FSPSvarIMFSEDFamily sfrPeriod="Period0Myr">
-                        </sedFamily>
-                        <sedFamily type="SEDFamily">
-                            <ToddlersSEDFamily sedMode="SFRNormalized" stellarTemplate="BPASSChab100Bin" includeDust="false" resolution="High" sfrPeriod="Period0Myr"/>
-                        </sedFamily>
-                        <wavelengthBiasDistribution type="WavelengthDistribution">
-                            <DefaultWavelengthDistribution/>
-                        </wavelengthBiasDistribution>
-                    </ParticleSource> -->
                 </sources>
             </SourceSystem>
         </sourceSystem>
@@ -220,37 +206,36 @@
         <instrumentSystem type="InstrumentSystem">
             <InstrumentSystem>
                 <instruments type="Instrument">
-                    <SEDInstrument instrumentName="SED_tot" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                    <!-- <FrameInstrument instrumentName="image" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" fieldOfViewX="2 kpc" numPixelsX="512" centerX="0" fieldOfViewY="2 kpc" numPixelsY="512" centerY="0" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
                             <ConfigurableBandWavelengthGrid>
                                 <bands type="Band">
-                                    <BroadBand bandName="GALEX FUV"/>
-                                    <BroadBand bandName="GALEX NUV"/>
-                                    <BroadBand bandName="GENERIC JOHNSON V"/>
+                                    <BroadBand bandName="SDSS g"/>
+                                    <BroadBand bandName="SDSS r"/>
+                                    <BroadBand bandName="SDSS i"/>
                                 </bands>
                             </ConfigurableBandWavelengthGrid>
                         </wavelengthGrid>
-                    </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_50kpc" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="50 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                    </FrameInstrument> -->
+                    <SEDInstrument instrumentName="SED_tot" distance="10 pc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="0 pc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="true">
                         <wavelengthGrid type="WavelengthGrid">
-                            <ConfigurableBandWavelengthGrid>
+                            <!-- <ConfigurableBandWavelengthGrid>
                                 <bands type="Band">
                                     <BroadBand bandName="GALEX FUV"/>
                                     <BroadBand bandName="GALEX NUV"/>
-                                    <BroadBand bandName="GENERIC JOHNSON V"/>
                                 </bands>
-                            </ConfigurableBandWavelengthGrid>
+                            </ConfigurableBandWavelengthGrid> -->
+                            <LogBorderWavelengthGrid minWavelength="0.125 micron" maxWavelength=".28 micron" numWavelengthBins="150"/>
                         </wavelengthGrid>
                     </SEDInstrument>
-                    <SEDInstrument instrumentName="SED_10kpc" distance="10 Mpc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="10 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                    <SEDInstrument instrumentName="SED_50kpc" distance="10 pc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="50 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
                         <wavelengthGrid type="WavelengthGrid">
-                            <ConfigurableBandWavelengthGrid>
-                                <bands type="Band">
-                                    <BroadBand bandName="GALEX FUV"/>
-                                    <BroadBand bandName="GALEX NUV"/>
-                                    <BroadBand bandName="GENERIC JOHNSON V"/>
-                                </bands>
-                            </ConfigurableBandWavelengthGrid>
+                            <LogBorderWavelengthGrid minWavelength="0.125 micron" maxWavelength=".28 micron" numWavelengthBins="150"/>
+                        </wavelengthGrid>
+                    </SEDInstrument>
+                    <SEDInstrument instrumentName="SED_10kpc" distance="10 pc" inclination="0 deg" azimuth="0 deg" roll="0 deg" radius="10 kpc" recordComponents="true" numScatteringLevels="0" recordPolarization="false" recordStatistics="false">
+                        <wavelengthGrid type="WavelengthGrid">
+                            <LogBorderWavelengthGrid minWavelength="0.125 micron" maxWavelength=".28 micron" numWavelengthBins="150"/>
                         </wavelengthGrid>
                     </SEDInstrument>
                 </instruments>
