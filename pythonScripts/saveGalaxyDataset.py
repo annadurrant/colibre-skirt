@@ -8,6 +8,8 @@ import h5py as h5
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import multiprocessing
+from functools import partial
+from scipy.interpolate import interp1d
 
 # Set simName
 parser = argparse.ArgumentParser(
@@ -33,17 +35,16 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--SOAP",
-    action="store_true",
-    help="Also store data to SOAP catalogue.",
-)
-
-parser.add_argument(
     "--IDs",
     type=int,
     nargs='+',
     default=-1,
-    help="Halo IDs to run SKIRT simulations for, based on HBT track IDs.",
+)
+
+parser.add_argument(
+    "--nproc",
+    type=int,
+    default=64,
 )
 
 
@@ -67,68 +68,94 @@ with h5.File(catalogue_file) as fi:
     halo_IDs = fi['InputHalos/HaloCatalogueIndex'][()]
 fi.close()
 
-def loop_luminosity(idx):
+min_wavelength = 1450 * 1e-4 # micron
+max_wavelength = 1550 * 1e-4
 
-    idx=int(idx)
+def top_hat_filter(
+        wavelengths, # micron
+        f_lambda, # flux per wavelength in W/m2/micron
+        min_wavelength, 
+        max_wavelength,
+):
+    speed_of_light_micron = unyt.c.to_value('m/s') * 1e6
+    frequencies = speed_of_light_micron / wavelengths # Hz
+    f_v = f_lambda * wavelengths / frequencies # W/m2/Hz
 
-    file = SKIRToutputFilePath + f'/snap{args.snap}_ID{idx}_SED_tot_sed.dat'
+    f_v /= 1e-26 # SI to Jy 
+
+    log_wavelengths = np.log10(wavelengths)
+    log_min, log_max = np.log10(min_wavelength), np.log10(max_wavelength)
+
+    f_v_intp = interp1d(log_wavelengths,f_v)
+    f_v_refined = f_v_intp(np.linspace(log_min,log_max,1000))
+    f_v_avg = np.mean(f_v_refined)
+
+    lum = f_v_avg / 3631
     
-    if os.path.isfile(file):
-        dset_id = np.where(halo_IDs == idx)[0][0]
+    return lum
 
-        wavelengths = np.loadtxt(file,usecols=0)
-        sed_tot = 1e12 * np.loadtxt(file,usecols=1) / 3631 #Jy
-        sed_10 = 1e12 * np.loadtxt( SKIRToutputFilePath + f'/snap{args.snap}_ID{idx}_SED_10kpc_sed.dat',usecols=1) / 3631 #Jy
-        sed_50 = 1e12 * np.loadtxt( SKIRToutputFilePath + f'/snap{args.snap}_ID{idx}_SED_50kpc_sed.dat',usecols=1) / 3631 #Jy
+def loop_luminosity(
+    idx,
+    aperture_name='tot'
+):
+    idx = int(idx)
+    dset_id = np.where(halo_IDs == idx)[0][0] 
 
-        fuv_tot, fuv_10, fuv_50 = sed_tot[0], sed_10[0], sed_50[0] 
+    sed_file = np.loadtxt(SKIRToutputFilePath + f'/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat')
+    wavelengths = sed_file[:,0] # in micron
+    attenuated_sed = sed_file[:,1] # in W/m2/micron
+    intrinsic_sed = sed_file[:,2] # in W/m2/micron
 
-        # for beta slopes, convert from freq. flux to wavelength flux
-        convert_fuv = (1/1350 - 1/1750) / (1750 - 1350) 
-        convert_nuv = (1/1750 - 1/2800) / (2800 - 1750) 
-        beta_50 = np.log10( sed_50[1]/sed_50[0] * convert_nuv/convert_fuv ) / np.log10(wavelengths[1]/wavelengths[0])
-        # or is the conversion factor just between the central wavelengths?
-        beta_50 = np.log10( sed_50[1]/sed_50[0] * (wavelengths[0]/wavelengths[1]**2) ) / np.log10(wavelengths[1]/wavelengths[0])
-        
+    # run top hat filter over seds and store
+    intrinsic_luminosity = top_hat_filter(wavelengths,intrinsic_sed,min_wavelength,max_wavelength)
+    attenuated_luminosity = top_hat_filter(wavelengths,attenuated_sed,min_wavelength,max_wavelength)
 
-        return (dset_id, fuv_tot, fuv_10, fuv_50, beta_50)
+    # compute beta slope between end points
+    beta = np.log10( attenuated_sed[-1]/attenuated_sed[0] ) / np.log10(wavelengths[-1]/wavelengths[0])
 
-def create_skirt_lum_dset():
+    return (dset_id, intrinsic_luminosity, attenuated_luminosity, beta)
 
+def create_skirt_lum_dset(
+    aperture=50 # kpc
+):
+    print('Aperture size [kpc]:', aperture)
+
+    if aperture == None:
+        aperture_name = 'tot'
+        group_name = 'BoundSubhalo'
+    else:
+        aperture_name = f'{aperture}kpc'
+        group_name = f'ProjectedAperture/{aperture}kpc/projz'
+
+    # Get intrinsic values from SOAP for faint' dust-free objects
     with h5.File(catalogue_file) as fi:
-        soap_dset = fi['BoundSubhalo/CorrectedStellarLuminosity']
+        soap_dset = fi[f'{group_name}/CorrectedStellarLuminosity']
         attributes = {}
         for key in soap_dset.attrs:
             if key == 'Description':
-                attributes[key] = 'Total dust-attenuated stellar luminosity in the GALEX FUV band, computed with SKIRT.'
+                attributes[key] = 'Total stellar luminosity for a top hat UV band [1450-1550 A], computed with SKIRT.'
             else:
                 attributes[key] = soap_dset.attrs[key]
         
-        halo_luminosities = np.array([
-            soap_dset[()][:,0],
-            fi['ProjectedAperture/10kpc/projz/CorrectedStellarLuminosity'][()][:,0],
-            fi['ProjectedAperture/50kpc/projz/CorrectedStellarLuminosity'][()][:,0]
-        ]).T
-        
+        intrinsic_luminosities = soap_dset[()][:,0]
     fi.close()
 
-    halo_luminosities_with_skirt = np.copy(halo_luminosities)
+    # Create arrays to store results
+    attenuated_luminosities = np.copy(intrinsic_luminosities)
+    beta_slopes = np.zeros_like(intrinsic_luminosities)
+    extinction = np.zeros_like(intrinsic_luminosities)
 
-    # Read in SKIRT data and add to halo data
-    # skirt_files = os.listdir(SKIRToutputFilePath)
-    sample_file = np.loadtxt(sampleFilepath + f'sample_{args.snap}.txt')
+    # Loop over SKIRT IDs
+    sample_IDs = np.loadtxt(sampleFilepath + f'sample_{args.snap}.txt')[:,0]
 
-    extinction = np.zeros_like(halo_luminosities_with_skirt)
-    beta_slopes = np.zeros_like(halo_luminosities_with_skirt[:,0])
+    with multiprocessing.Pool(processes=args.nproc) as pool:
+        results = pool.map(partial(loop_luminosity,aperture_name=aperture_name), sample_IDs)
 
-    with multiprocessing.Pool(processes=64) as pool:
-        results = pool.map(loop_luminosity, sample_file[:,0])
-
-    for dset_id, fuv_tot, fuv_10, fuv_50, beta_50 in results:
-        skirt_lum_arr = np.array([fuv_tot, fuv_10, fuv_50])
-        halo_luminosities_with_skirt[dset_id] = skirt_lum_arr
-        extinction[dset_id] = -2.5 * np.log10( skirt_lum_arr / halo_luminosities[dset_id] )
-        beta_slopes[dset_id] = beta_50
+    for dset_id, lum_int, lum_att, beta in results:
+        intrinsic_luminosities[dset_id] = lum_int
+        attenuated_luminosities[dset_id] = lum_att
+        extinction[dset_id] = -2.5 * np.log10( lum_att / lum_int )
+        beta_slopes[dset_id] = beta
 
     print('Finished collecting SKIRT data and extinction factors.', flush=True)
 
@@ -136,60 +163,23 @@ def create_skirt_lum_dset():
     output_filepath = params['OutputFilepaths']['GalaxyLuminositiesFilepath'].format(simPath=simPath,snap_nr=args.snap)
     output_fi = h5.File(output_filepath,'a')
 
-    grp_names = ['BoundSubhalo','ProjectedAperture/10kpc/projz','ProjectedAperture/50kpc/projz']
+    grp = output_fi.require_group(group_name)
 
-    # First save luminosities and extinction factors
-    for gi, grp_name in enumerate(grp_names):
+    dset = grp.create_dataset('IntrinsicUVLuminosity',data=intrinsic_luminosities)
+    for attribute in attributes:
+        dset.attrs[attribute] = attributes[attribute]
 
-        grp = output_fi.require_group(grp_name)
+    dset = grp.create_dataset('AttenuatedUVLuminosity',data=attenuated_luminosities)
+    for attribute in attributes:
+        dset.attrs[attribute] = attributes[attribute]
 
-        dset = grp.create_dataset('FUVStellarLuminosity',data=halo_luminosities_with_skirt[:,gi])
-
-        for attribute in attributes:
-            dset.attrs[attribute] = attributes[attribute]
-
-        dset_extinct = grp.create_dataset('FUVExtinction',data=extinction[:,gi])
-
-    # Also save beta slope
-    grp = output_fi.require_group('ProjectedAperture/50kpc/projz')
-    dset_beta = grp.create_dataset('BetaSlope',data=beta_slopes)
+    grp.create_dataset('UVExtinction',data=extinction)
+    grp.create_dataset('BetaSlope',data=beta_slopes)
 
     output_fi.close()
-
-    if args.SOAP == True:
-        with h5.File(catalogue_file,'a') as dst_fi, h5.File(output_filepath,'a') as src_fi:
-            src_fi.copy(src_fi['ProjectedAperture/50kpc/projz/FUVStellarLuminosity'],dst_fi['ProjectedAperture/50kpc/projz'],'CorrectedStellarLuminosityWithSKIRT')
-        src_fi.close()
-        dst_fi.close()
 
     print('Done.', flush=True)
 
-
-def create_average_sml_dst():
-    # Compute mass weighted smoothing lengths from particle files
-
-    def loopSml(id):
-        dset_id = np.where(halo_IDs == id)[0][0]
-        stars_file = np.loadtxt(storeParticlesPath + f'/snap{args.snap}_ID{id}_stars.txt').T
-
-        minitials = stars_file[5]
-        smls = stars_file[3]
-        massweighted_sml = minitials * smls / np.sum(minitials)
-        smooothingLength = np.mean(massweighted_sml)
-
-        return (dset_id, smooothingLength)
-
-    SmoothingLengths = np.zeros_like(halo_IDs, dtype=float)
-
-    with multiprocessing.Pool(processes=64) as pool:
-        results = pool.map(loopSml, sample_IDs)
-
-    for idx, value in results:
-        SmoothingLengths[idx] = value
-
-    output_fi = h5.File(output_filepath,'a')
-    output_fi.create_dataset('BoundSubhalo/InitialMassWeightedSmoothingLength',data=SmoothingLengths)
-    output_fi.close()
 
 def check_error():
 
@@ -229,5 +219,8 @@ def check_error():
     
     np.savetxt(sampleFilepath + f'/relative_error_{args.snap}.txt', ids_with_errors, fmt = ['%d', '%.6f'], header = header)
 
-# create_skirt_lum_dset()
-check_error()
+create_skirt_lum_dset(aperture=None)
+create_skirt_lum_dset(aperture=10)
+create_skirt_lum_dset(aperture=50)
+
+    
