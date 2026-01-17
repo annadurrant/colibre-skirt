@@ -10,6 +10,7 @@ import matplotlib.pyplot as plt
 import multiprocessing
 from functools import partial
 from scipy.interpolate import interp1d
+import statsmodels.api as sm
 
 # Set simName
 parser = argparse.ArgumentParser(
@@ -94,6 +95,29 @@ def top_hat_filter(
     
     return lum
 
+
+def uv_continuum_slope(
+    wavelengths,  # micron
+    f_y,  # flux per wavelength in W/m2/micron
+    y0 = 0.1250, 
+    y1 = 0.2600,
+):
+    if y0 < wavelengths[0]:
+        y0 = wavelengths[0]
+
+    wavelengths_intp = np.linspace(y0,y1,200)
+    f_y_intp = interp1d(wavelengths,f_y)(wavelengths_intp)
+
+    C = sm.add_constant(np.log10(wavelengths_intp))
+
+    # Least Absolute Deviation (L1) regression
+    model = sm.QuantReg(np.log10(f_y_intp), C)
+    result = model.fit(q=0.5)
+
+    logA, beta = result.params
+    
+    return beta
+
 def loop_luminosity(
     idx,
     aperture_name='tot'
@@ -111,7 +135,7 @@ def loop_luminosity(
     attenuated_luminosity = top_hat_filter(wavelengths,attenuated_sed,min_wavelength,max_wavelength)
 
     # compute beta slope between end points
-    beta = np.log10( attenuated_sed[-1]/attenuated_sed[0] ) / np.log10(wavelengths[-1]/wavelengths[0])
+    beta = uv_continuum_slope(wavelengths, attenuated_sed)
 
     return (dset_id, intrinsic_luminosity, attenuated_luminosity, beta)
 
@@ -165,16 +189,21 @@ def create_skirt_lum_dset(
 
     grp = output_fi.require_group(group_name)
 
-    dset = grp.create_dataset('IntrinsicUVLuminosity',data=intrinsic_luminosities)
-    for attribute in attributes:
-        dset.attrs[attribute] = attributes[attribute]
+    try:
+        dset = grp.create_dataset('IntrinsicUVLuminosity',data=intrinsic_luminosities)
+        for attribute in attributes:
+            dset.attrs[attribute] = attributes[attribute]
 
-    dset = grp.create_dataset('AttenuatedUVLuminosity',data=attenuated_luminosities)
-    for attribute in attributes:
-        dset.attrs[attribute] = attributes[attribute]
+        dset = grp.create_dataset('AttenuatedUVLuminosity',data=attenuated_luminosities)
+        for attribute in attributes:
+            dset.attrs[attribute] = attributes[attribute]
 
-    grp.create_dataset('UVExtinction',data=extinction)
-    grp.create_dataset('BetaSlope',data=beta_slopes)
+        grp.create_dataset('UVExtinction',data=extinction)
+        grp.create_dataset('BetaSlope',data=beta_slopes)
+    
+    except:
+        del grp['BetaSlope']
+        grp.create_dataset('BetaSlope',data=beta_slopes)
 
     output_fi.close()
 

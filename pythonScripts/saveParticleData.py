@@ -155,8 +155,10 @@ def analysis(sg, halo_ID, snap):
             alignment_vector = [0, 1, 0]
         else:
             raise Warning('The rotation parameter can only be None, face_on or edge_on.')
-        
-        angular_momentum_vector /= -1 * np.linalg.norm(angular_momentum_vector)
+    
+        angular_momentum_vector = sg.halo_catalogue.exclusive_sphere_50kpc.angular_momentum_stars
+
+        angular_momentum_vector /= np.linalg.norm(angular_momentum_vector)
         
         rotation_matrix,_ = scipy.spatial.transform.Rotation.align_vectors(alignment_vector, angular_momentum_vector)
         rotation_matrix.as_matrix()
