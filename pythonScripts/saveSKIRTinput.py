@@ -85,6 +85,7 @@ if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dus
     else:
 
         old_stars_params = np.array([])
+        starforming_parentGas_params = np.array([])
 
     if vIMF == True:
         old_stars_header = 'Column 1: x (pc)\n' + \
@@ -150,7 +151,10 @@ if os.path.isfile(SKIRTinputFilePath + 'snap' + snapNum + '_ID' + haloID + '_dus
         starforming_gas_params = np.empty((0, 8)) # Needs to be a 2D array for concatenation later
         dust_params = np.array([])
 
-    starformingregions_params = np.concatenate((starforming_gas_params, starforming_parentGas_params))
+    if len(starforming_parentGas_params) > 0:
+        starformingregions_params = np.concatenate((starforming_gas_params, starforming_parentGas_params))
+    else:
+        starformingregions_params = starforming_gas_params
 
     starforming_gas_header = 'Column 1: x (pc)\n' + \
                 'Column 2: y (pc)\n' + \

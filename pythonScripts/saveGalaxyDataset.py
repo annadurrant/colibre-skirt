@@ -11,6 +11,8 @@ import multiprocessing
 from functools import partial
 from scipy.interpolate import interp1d
 import statsmodels.api as sm
+import warnings
+warnings.filterwarnings("ignore")
 
 # Set simName
 parser = argparse.ArgumentParser(
@@ -251,5 +253,6 @@ def check_error():
 create_skirt_lum_dset(aperture=None)
 create_skirt_lum_dset(aperture=10)
 create_skirt_lum_dset(aperture=50)
+check_error()
 
     

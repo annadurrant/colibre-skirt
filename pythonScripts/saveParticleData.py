@@ -247,7 +247,6 @@ for snap in args.snaps:
 
     catalogue = load_snapshot(catalogue_file)
 
-    # halo_IDs_all = catalogue.input_halos_hbtplus.track_id.value
     halo_IDs_all = catalogue.input_halos.halo_catalogue_index.value
 
     if args.distr != -1:
