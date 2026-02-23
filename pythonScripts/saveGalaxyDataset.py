@@ -67,6 +67,8 @@ SKIRToutputFilePath += args.outputDir
 # Load SOAP catalogue and required attributes for a SOAP dset
 catalogue_file = params['InputFilepaths']['catalogueFile'].format(simPath=simPath,snap_nr=args.snap)
 
+output_filepath = params['OutputFilepaths']['GalaxyLuminositiesFilepath'].format(simPath=simPath,snap_nr=args.snap)
+
 with h5.File(catalogue_file) as fi:
     halo_IDs = fi['InputHalos/HaloCatalogueIndex'][()]
 fi.close()
@@ -163,12 +165,16 @@ def create_skirt_lum_dset(
             else:
                 attributes[key] = soap_dset.attrs[key]
         
-        intrinsic_luminosities = soap_dset[()][:,0]
+        # intrinsic_luminosities = soap_dset[()][:,0]
+    fi.close()
+    
+    with h5.File(output_filepath) as fi:
+        intrinsic_luminosities = fi['BoundSubhalo/IntrinsicUVLuminosity'][()]
+        beta_slopes = fi['BoundSubhalo/BetaSlope_DustFree'][()]
     fi.close()
 
     # Create arrays to store results
     attenuated_luminosities = np.copy(intrinsic_luminosities)
-    beta_slopes = np.zeros_like(intrinsic_luminosities)
     extinction = np.zeros_like(intrinsic_luminosities)
 
     # Loop over SKIRT IDs
@@ -186,26 +192,28 @@ def create_skirt_lum_dset(
     print('Finished collecting SKIRT data and extinction factors.', flush=True)
 
     # Create hdf5 file and save data
-    output_filepath = params['OutputFilepaths']['GalaxyLuminositiesFilepath'].format(simPath=simPath,snap_nr=args.snap)
     output_fi = h5.File(output_filepath,'a')
 
     grp = output_fi.require_group(group_name)
 
     try:
-        dset = grp.create_dataset('IntrinsicUVLuminosity',data=intrinsic_luminosities)
-        for attribute in attributes:
-            dset.attrs[attribute] = attributes[attribute]
-
-        dset = grp.create_dataset('AttenuatedUVLuminosity',data=attenuated_luminosities)
-        for attribute in attributes:
-            dset.attrs[attribute] = attributes[attribute]
-
-        grp.create_dataset('UVExtinction',data=extinction)
-        grp.create_dataset('BetaSlope',data=beta_slopes)
-    
-    except:
+        del grp['IntrinsicUVLuminositySKIRT']
+        del grp['AttenuatedUVLuminosity']
+        del grp['UVExtinction']
         del grp['BetaSlope']
-        grp.create_dataset('BetaSlope',data=beta_slopes)
+    except:
+        print('')
+
+    dset = grp.create_dataset('IntrinsicUVLuminositySKIRT',data=intrinsic_luminosities)
+    for attribute in attributes:
+        dset.attrs[attribute] = attributes[attribute]
+
+    dset = grp.create_dataset('AttenuatedUVLuminosity',data=attenuated_luminosities)
+    for attribute in attributes:
+        dset.attrs[attribute] = attributes[attribute]
+
+    grp.create_dataset('UVExtinction',data=extinction)
+    grp.create_dataset('BetaSlope',data=beta_slopes)
 
     output_fi.close()
 
