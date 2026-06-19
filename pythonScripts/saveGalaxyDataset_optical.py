@@ -10,12 +10,13 @@ import matplotlib.pyplot as plt
 import multiprocessing
 from functools import partial
 from scipy.interpolate import interp1d
-import statsmodels.api as sm
+from speclite import filters
+import astropy.units as u
 import warnings
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(
-    description="Convert SKIRT integrated FUV-luminosity output into hdf5 dataset."
+    description="Convert SKIRT integrated r-band output into hdf5 dataset."
 )
 
 parser.add_argument(
@@ -58,8 +59,6 @@ parser.add_argument(
 
 args = parser.parse_args()
 
-
-
 #############################################
 #### Define filepaths from parameter file ###
 #############################################
@@ -80,56 +79,32 @@ with h5.File(catalogue_file) as fi:
     halo_IDs = fi["InputHalos/HaloCatalogueIndex"][()]
 fi.close()
 
-#############################################
-########### Define top hat filter ###########
-#############################################
-min_wavelength = 1450 * 1e-4 # micron
-max_wavelength = 1550 * 1e-4
-
-def top_hat_filter(
-        wavelengths, # micron
-        f_lambda, # flux per wavelength in W/m2/micron
-        min_wavelength, 
-        max_wavelength,
+#####################################
+########### Define filter ###########
+#####################################
+def apply_filter(
+    wavelengths, # micron
+    f_lambda, # flux per wavelength in W/m2/micron
+    filter_name, 
 ):
-    speed_of_light_micron = unyt.c.to_value("m/s") * 1e6
-    frequencies = speed_of_light_micron / wavelengths # Hz
-    f_v = f_lambda * wavelengths / frequencies # W/m2/Hz
 
-    f_v /= 1e-26 # SI to Jy 
+    filter_throughput = np.loadtxt(filters_table + filter_name + ".dat")
 
-    log_wavelengths = np.log10(wavelengths)
-    log_min, log_max = np.log10(min_wavelength), np.log10(max_wavelength)
+    myfilter = filters.FilterResponse(
+        wavelength=filter_wavelengths[:,0],
+        response=filter_throughput[:,1],
+        meta=dict(group_name="JWST",
+                band_name=filter_name.split("_")[-1])
+    )
 
-    f_v_intp = interp1d(log_wavelengths,f_v)
-    f_v_refined = f_v_intp(np.linspace(log_min,log_max,1000))
-    f_v_avg = np.mean(f_v_refined)
+    mag = myfilter.get_ab_magnitude(
+        f_lambda * u.W / u.m**2 / u.micron,
+        wavelengths * u.micron,
+    )
 
-    lum = f_v_avg / 3631
+    lum = 10 ** (-0.4 * mag)
     
     return lum
-
-def uv_continuum_slope(
-    wavelengths,  # micron
-    f_y,  # flux per wavelength in W/m2/micron
-    y0 = 0.1250, 
-    y1 = 0.2600,
-):
-    if y0 < wavelengths[0]:
-        y0 = wavelengths[0]
-
-    wavelengths_intp = np.linspace(y0,y1,200)
-    f_y_intp = interp1d(wavelengths,f_y)(wavelengths_intp)
-
-    C = sm.add_constant(np.log10(wavelengths_intp))
-
-    # Least Absolute Deviation (L1) regression
-    model = sm.QuantReg(np.log10(f_y_intp), C)
-    result = model.fit(q=0.5)
-
-    logA, beta = result.params
-    
-    return beta
 
 
 #############################################
@@ -137,6 +112,7 @@ def uv_continuum_slope(
 #############################################
 def loop_luminosity(
     idx,
+    filter_name="JWST_F444W",
     aperture_name="tot"
 ):
     idx = int(idx)
@@ -144,17 +120,14 @@ def loop_luminosity(
 
     sed_file = np.loadtxt(SKIRToutputFilePath + f"/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat")
     wavelengths = sed_file[:,0] # in micron
-    attenuated_sed = sed_file[:,1] # in W/m2/micron
-    intrinsic_sed = sed_file[:,2] # in W/m2/micron
+    attenuated_luminosity = sed_file[:,1] # in W/m2/micron
+    intrinsic_luminosity = sed_file[:,2] # in W/m2/micron
 
-    # run top hat filter over seds
-    intrinsic_luminosity = top_hat_filter(wavelengths,intrinsic_sed,min_wavelength,max_wavelength)
-    attenuated_luminosity = top_hat_filter(wavelengths,attenuated_sed,min_wavelength,max_wavelength)
+    # run filter over seds
+    intrinsic_luminosity = apply_filter(wavelengths,intrinsic_sed,filter_name)
+    attenuated_luminosity = apply_filter(wavelengths,attenuated_sed,filter_name)
 
-    # compute beta slope between end points
-    beta = uv_continuum_slope(wavelengths, attenuated_sed)
-
-    return (dset_id, intrinsic_luminosity, attenuated_luminosity, beta)
+    return (dset_id, intrinsic_luminosity, attenuated_luminosity)
 
 print("Aperture size [kpc]:", aperture)
 
@@ -230,6 +203,3 @@ output_fi.close()
 
 print("Done.", flush=True)
 
-
-
-    

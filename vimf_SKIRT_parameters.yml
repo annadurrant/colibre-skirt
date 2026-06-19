@@ -1,6 +1,6 @@
 InputFilepaths:
-  skiFilepath: "/users/ariadurr/ariadurr/COLIBRE/Processing/colibre-skirt/vimf_template_v{skifileversion}.ski" # The path to the ski file
-  simPath: "/users/ariadurr/ariadurr/COLIBRE/Simulations/{simName}" # Path to COLIBRE simulation
+  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/ski_templates/vimf_template_v{skifileversion}.ski" # The path to the ski file
+  simPath: "/mnt/aridata1/users/ariadurr/COLIBRE/Simulations/{simName}" # Path to COLIBRE simulation
   catalogueFile: "{simPath}/SOAP/halo_properties_vimf_{snap_nr:04d}.hdf5"
 
   # If the snapshots are distributed
@@ -14,7 +14,7 @@ OutputFilepaths:
   sampleFolder: "{simPath}/SKIRT/" # Folder where the galaxy sample .txt files will be stored
   storeParticlesPath: "{simPath}/SKIRT/ParticleFiles/{rotation}/" # Folder where the COLIBRE particle .txt files will be stored
   SKIRTinputFilePath: "{simPath}/SKIRT/InputFiles/{rotation}/" # Path where the SKIRT input files will be stored
-  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles/" # Path where the SKIRT output files will be stored
+  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles_optical/" # Path where the SKIRT output files will be stored
   GalaxyLuminositiesFilepath: "{simPath}/SOAP/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
 
 SelectionCriteria:
@@ -25,6 +25,6 @@ SelectionCriteria:
 ModelParameters:
   SKIRTboxsize: 100 # in kpc
   starsMaxAge: 0 # in Myr, stars younger than this age are modelled from SF gas. This must match TODDLERS SFR period.
-  photonPackets: 1e5 # Number of photon packets
+  photonPackets: 2e5 # Number of photon packets
   binTreeMaxLevel: 36 # Max refinement level of the spatial grid
   rotation: "None" # Option to rotate galaxy based on the angular momentum vector of stars
