@@ -38,13 +38,6 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--IDs",
-    type=int,
-    nargs="+",
-    default=-1,
-)
-
-parser.add_argument(
     "--nproc",
     type=int,
     default=64,
@@ -53,7 +46,22 @@ parser.add_argument(
 parser.add_argument(
     "--aperture",
     type=int,
+    default=0,
     help="Aperture size [kpc] (default: 0, all bound particles).",
+)
+
+parser.add_argument(
+    "--redshift",
+    type=int,
+    default=0,
+    help="Redshift the SED accordingly (default: 0).",
+)
+
+parser.add_argument(
+    "--filter_name",
+    type=str,
+    default="SDSS_r",
+    help="Name of filter for SED integration (default: SDSS_r).",
 )
 
 
@@ -71,9 +79,12 @@ simPath = params["InputFilepaths"]["simPath"].format(simName=args.simName)
 sampleFilepath = params["OutputFilepaths"]["sampleFolder"].format(simPath=simPath)
 SKIRToutputFilePath = params["OutputFilepaths"]["SKIRToutputFilePath"].format(simPath=simPath,rotation=params["ModelParameters"]["rotation"])
 SKIRToutputFilePath += args.outputDir
+correctedSnapshotFile = params["InputFilepaths"]["correctedSnapshotFile"].format(simPath=simPath, snap_nr=args.snap)
 
 catalogue_file = params["InputFilepaths"]["catalogueFile"].format(simPath=simPath,snap_nr=args.snap)
 output_filepath = params["OutputFilepaths"]["GalaxyLuminositiesFilepath"].format(simPath=simPath,snap_nr=args.snap)
+
+filterTablePath = params["InputFilepaths"]["filtersTablePath"]
 
 with h5.File(catalogue_file) as fi:
     halo_IDs = fi["InputHalos/HaloCatalogueIndex"][()]
@@ -82,28 +93,32 @@ fi.close()
 #####################################
 ########### Define filter ###########
 #####################################
+filter_name = args.filter_name
+
+filter_throughput = np.loadtxt(filters_table + filter_name + ".dat")
+
+if "SDSS" in filter_name:
+    myfilter = filters.load_filter(filter_name)
+
+myfilter = filters.FilterResponse(
+    wavelength=filter_throughput[:,0] * u.um / (1 + redshift),
+    response=filter_throughput[:,1],
+    meta=dict(group_name="JWST",
+            band_name=filter_name.split("_")[-1])
+)
+
 def apply_filter(
     wavelengths, # micron
     f_lambda, # flux per wavelength in W/m2/micron
-    filter_name, 
 ):
 
-    filter_throughput = np.loadtxt(filters_table + filter_name + ".dat")
-
-    myfilter = filters.FilterResponse(
-        wavelength=filter_wavelengths[:,0],
-        response=filter_throughput[:,1],
-        meta=dict(group_name="JWST",
-                band_name=filter_name.split("_")[-1])
-    )
-
     mag = myfilter.get_ab_magnitude(
-        f_lambda * u.W / u.m**2 / u.micron,
-        wavelengths * u.micron,
+        f_lambda * u.W / u.m**2 / u.um,
+        wavelengths * u.um,
     )
 
     lum = 10 ** (-0.4 * mag)
-    
+
     return lum
 
 
@@ -112,24 +127,34 @@ def apply_filter(
 #############################################
 def loop_luminosity(
     idx,
-    filter_name="JWST_F444W",
+    filter_name="SDSS_r",
     aperture_name="tot"
 ):
     idx = int(idx)
     dset_id = np.where(halo_IDs == idx)[0][0] 
 
-    sed_file = np.loadtxt(SKIRToutputFilePath + f"/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat")
-    wavelengths = sed_file[:,0] # in micron
-    attenuated_luminosity = sed_file[:,1] # in W/m2/micron
-    intrinsic_luminosity = sed_file[:,2] # in W/m2/micron
+    try:
 
-    # run filter over seds
-    intrinsic_luminosity = apply_filter(wavelengths,intrinsic_sed,filter_name)
-    attenuated_luminosity = apply_filter(wavelengths,attenuated_sed,filter_name)
+        sed_file = np.loadtxt(SKIRToutputFilePath + f"/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat")
+        wavelengths = sed_file[:,0] # in micron
+        attenuated_luminosity = sed_file[:,1] # in W/m2/micron
+        intrinsic_luminosity = sed_file[:,2] # in W/m2/micron
 
-    return (dset_id, intrinsic_luminosity, attenuated_luminosity)
+        # run filter over seds
+        intrinsic_luminosity = apply_filter(wavelengths,intrinsic_sed)
+        attenuated_luminosity = apply_filter(wavelengths,attenuated_sed)
+
+        return (dset_id, intrinsic_luminosity, attenuated_luminosity)
+    
+    except:
+        return (dset_id, 0, 0)
+
+aperture = args.aperture
+
+redshift = args.redshift
 
 print("Aperture size [kpc]:", aperture)
+print(f"Filter name: {filter_name}; redshift: {redshift}")
 
 if aperture == 0:
     aperture_name = "tot"
@@ -139,22 +164,30 @@ else:
     group_name = f"ProjectedAperture/{aperture}kpc/projz"
 
 
+# Set luminosity band column
+with h5.File(correctedSnapshotFile,"r") as fi:
+    column_names = fi["SubgridScheme/NamedColumns/CorrectedLuminosities"][()]
+fi.close()
+
+column_names = np.array([c.decode("utf-8") for c in column_names])
+try:
+    SEL = column_names == filter_name
+    band_index = np.argwhere(SEL == True)[0][0]
+except:
+    raise ValueError(f"Cannot find filter name {filter_name} in SOAP catalogue.")
+
+
 # Get intrinsic values from SOAP for faint dust-free objects
 with h5.File(catalogue_file) as fi:
     soap_dset = fi[f"{group_name}/CorrectedStellarLuminosity"]
     attributes = {}
     for key in soap_dset.attrs:
         if key == "Description":
-            attributes[key] = "Total stellar luminosity for a top hat UV band [1450-1550 A], computed with SKIRT."
+            attributes[key] = f"Total stellar luminosity for {filter_name} (redshiftted: {redshift}), computed with SKIRT."
         else:
             attributes[key] = soap_dset.attrs[key]
     
-    intrinsic_luminosities = soap_dset[()][:,0]
-fi.close()
-
-with h5.File(output_filepath) as fi:
-    # intrinsic_luminosities = fi["BoundSubhalo/IntrinsicUVLuminosity"][()]
-    beta_slopes = fi["BoundSubhalo/BetaSlope_DustFree"][()]
+    intrinsic_luminosities = soap_dset[()][:,band_index]
 fi.close()
 
 # Create arrays to store results
@@ -168,10 +201,11 @@ with multiprocessing.Pool(processes=args.nproc) as pool:
     results = pool.map(partial(loop_luminosity,aperture_name=aperture_name), sample_IDs)
 
 for dset_id, lum_int, lum_att, beta in results:
+    if lum_int == 0:
+        continue
     intrinsic_luminosities[dset_id] = lum_int
     attenuated_luminosities[dset_id] = lum_att
     extinction[dset_id] = -2.5 * np.log10( lum_att / lum_int )
-    beta_slopes[dset_id] = beta
 
 print("Finished collecting SKIRT data and extinction factors.", flush=True)
 
@@ -181,23 +215,21 @@ output_fi = h5.File(output_filepath,"a")
 grp = output_fi.require_group(group_name)
 
 try:
-    del grp["IntrinsicUVLuminositySKIRT"]
-    del grp["AttenuatedUVLuminosity"]
-    del grp["UVExtinction"]
-    del grp["BetaSlope"]
+    del grp[f"Intrinsic{filter_name}LuminositySKIRT"]
+    del grp[f"Attenuated{filter_name}Luminosity"]
+    del grp[f"{filter_name}Extinction"]
 except:
     print("")
 
-dset = grp.create_dataset("IntrinsicUVLuminositySKIRT",data=intrinsic_luminosities)
+dset = grp.create_dataset(f"Intrinsic{filter_name}LuminositySKIRT",data=intrinsic_luminosities)
 for attribute in attributes:
     dset.attrs[attribute] = attributes[attribute]
 
-dset = grp.create_dataset("AttenuatedUVLuminosity",data=attenuated_luminosities)
+dset = grp.create_dataset(f"Attenuated{filter_name}Luminosity",data=attenuated_luminosities)
 for attribute in attributes:
     dset.attrs[attribute] = attributes[attribute]
 
-grp.create_dataset("UVExtinction",data=extinction)
-grp.create_dataset("BetaSlope",data=beta_slopes)
+grp.create_dataset(f"{filter_name}Extinction",data=extinction)
 
 output_fi.close()
 

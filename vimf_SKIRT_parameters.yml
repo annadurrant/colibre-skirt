@@ -5,10 +5,14 @@ InputFilepaths:
 
   # If the snapshots are distributed
   virtualSnapshotFile: "{simPath}/SOAP/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5"
+  correctedSnapshotFile: "{simPath}/corrected-snapshots/colibre_add_{snap_nr:04d}/colibre_add_{snap_nr:04d}.0.hdf5"
 
   # If not distributed you need to provide the membership and snapshot information separately
   snapshotFile: "{simPath}/snapshots/colibre_{snap_nr:04d}.hdf5"
   membershipFile: "{simPath}/SOAP/membership_{snap_nr:04d}.hdf5"
+
+  # Filter table path for SED integration
+  filterTablePath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/Tables/Filters/"
 
 OutputFilepaths:
   sampleFolder: "{simPath}/SKIRT/" # Folder where the galaxy sample .txt files will be stored

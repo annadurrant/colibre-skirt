@@ -156,6 +156,7 @@ def loop_luminosity(
 
     return (dset_id, intrinsic_luminosity, attenuated_luminosity, beta)
 
+aperture = args.aperture
 print("Aperture size [kpc]:", aperture)
 
 if aperture == 0:
