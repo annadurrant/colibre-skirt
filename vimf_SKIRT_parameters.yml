@@ -1,5 +1,5 @@
 InputFilepaths:
-  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/ski_templates/vimf_template_v{skifileversion}.ski" # The path to the ski file
+  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/ski_templates/vimf_template_v{skifileversion}_z.ski" # The path to the ski file
   simPath: "/mnt/aridata1/users/ariadurr/COLIBRE/Simulations/{simName}" # Path to COLIBRE simulation
   catalogueFile: "{simPath}/SOAP/halo_properties_vimf_{snap_nr:04d}.hdf5"
 
@@ -18,7 +18,7 @@ OutputFilepaths:
   sampleFolder: "{simPath}/SKIRT/" # Folder where the galaxy sample .txt files will be stored
   storeParticlesPath: "{simPath}/SKIRT/ParticleFiles/{rotation}/" # Folder where the COLIBRE particle .txt files will be stored
   SKIRTinputFilePath: "{simPath}/SKIRT/InputFiles/{rotation}/" # Path where the SKIRT input files will be stored
-  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles_optical/" # Path where the SKIRT output files will be stored
+  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles_optical_z/" # Path where the SKIRT output files will be stored
   GalaxyLuminositiesFilepath: "{simPath}/SOAP/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
 
 SelectionCriteria:

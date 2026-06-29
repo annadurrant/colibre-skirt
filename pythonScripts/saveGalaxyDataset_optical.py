@@ -84,7 +84,7 @@ correctedSnapshotFile = params["InputFilepaths"]["correctedSnapshotFile"].format
 catalogue_file = params["InputFilepaths"]["catalogueFile"].format(simPath=simPath,snap_nr=args.snap)
 output_filepath = params["OutputFilepaths"]["GalaxyLuminositiesFilepath"].format(simPath=simPath,snap_nr=args.snap)
 
-filterTablePath = params["InputFilepaths"]["filtersTablePath"]
+filterTablePath = params["InputFilepaths"]["filterTablePath"]
 
 with h5.File(catalogue_file) as fi:
     halo_IDs = fi["InputHalos/HaloCatalogueIndex"][()]
@@ -95,21 +95,26 @@ fi.close()
 #####################################
 filter_name = args.filter_name
 
-filter_throughput = np.loadtxt(filters_table + filter_name + ".dat")
-
 if "SDSS" in filter_name:
-    myfilter = filters.load_filter(filter_name)
+    band = filter_name.split("_")[-1]
+    myfilter = filters.load_filter("sdss2010-" + band)
 
-myfilter = filters.FilterResponse(
-    wavelength=filter_throughput[:,0] * u.um / (1 + redshift),
-    response=filter_throughput[:,1],
-    meta=dict(group_name="JWST",
-            band_name=filter_name.split("_")[-1])
-)
+else:
+
+    filter_throughput = np.loadtxt(filterTablePath + filter_name + ".dat")
+    
+    myfilter = filters.FilterResponse(
+        wavelength= filter_throughput[:,0] * u.um / (1 + args.redshift) ,
+        response=filter_throughput[:,1],
+        meta=dict(group_name=filter_name.split("_")[0],
+                band_name=filter_name.split("_")[-1])
+    )
+
 
 def apply_filter(
     wavelengths, # micron
-    f_lambda, # flux per wavelength in W/m2/micron
+    f_lambda, # flux per wavelength in W/m2/micron,
+    myfilter,
 ):
 
     mag = myfilter.get_ab_magnitude(
@@ -133,22 +138,21 @@ def loop_luminosity(
     idx = int(idx)
     dset_id = np.where(halo_IDs == idx)[0][0] 
 
-    try:
-
-        sed_file = np.loadtxt(SKIRToutputFilePath + f"/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat")
+    sed_file = np.loadtxt(SKIRToutputFilePath + f"/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat")
+    if sed_file.ndim > 1:
         wavelengths = sed_file[:,0] # in micron
-        attenuated_luminosity = sed_file[:,1] # in W/m2/micron
-        intrinsic_luminosity = sed_file[:,2] # in W/m2/micron
+        attenuated_sed = sed_file[:,1] # in W/m2/micron
+        intrinsic_sed = sed_file[:,2] # in W/m2/micron
 
         # run filter over seds
-        intrinsic_luminosity = apply_filter(wavelengths,intrinsic_sed)
-        attenuated_luminosity = apply_filter(wavelengths,attenuated_sed)
-
-        return (dset_id, intrinsic_luminosity, attenuated_luminosity)
-    
-    except:
+        intrinsic_luminosity = apply_filter(wavelengths, intrinsic_sed, myfilter)
+        attenuated_luminosity = apply_filter(wavelengths, attenuated_sed, myfilter)
+    else:
+        print(f"SED {SKIRToutputFilePath}/snap{args.snap}_ID{idx}_SED_{aperture_name}_sed.dat is 1D.")
         return (dset_id, 0, 0)
 
+    return (dset_id, intrinsic_luminosity, attenuated_luminosity)
+    
 aperture = args.aperture
 
 redshift = args.redshift
@@ -174,7 +178,8 @@ try:
     SEL = column_names == filter_name
     band_index = np.argwhere(SEL == True)[0][0]
 except:
-    raise ValueError(f"Cannot find filter name {filter_name} in SOAP catalogue.")
+    band_index = -1
+    print(f"Cannot find filter name {filter_name} in SOAP catalogue.")
 
 
 # Get intrinsic values from SOAP for faint dust-free objects
@@ -186,8 +191,10 @@ with h5.File(catalogue_file) as fi:
             attributes[key] = f"Total stellar luminosity for {filter_name} (redshiftted: {redshift}), computed with SKIRT."
         else:
             attributes[key] = soap_dset.attrs[key]
-    
-    intrinsic_luminosities = soap_dset[()][:,band_index]
+    if band_index != -1:
+        intrinsic_luminosities = soap_dset[()][:,band_index]
+    else:
+        intrinsic_luminosities = np.zeros_like(soap_dset[()][:,0])
 fi.close()
 
 # Create arrays to store results
@@ -200,7 +207,7 @@ sample_IDs = np.loadtxt(sampleFilepath + f"sample_{args.snap}.txt")[:,0]
 with multiprocessing.Pool(processes=args.nproc) as pool:
     results = pool.map(partial(loop_luminosity,aperture_name=aperture_name), sample_IDs)
 
-for dset_id, lum_int, lum_att, beta in results:
+for dset_id, lum_int, lum_att in results:
     if lum_int == 0:
         continue
     intrinsic_luminosities[dset_id] = lum_int

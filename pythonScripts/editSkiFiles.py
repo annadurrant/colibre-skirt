@@ -78,8 +78,6 @@ os.system(f"mkdir -p {SKIRToutputFilePath}")
 SKIRToutputFilePath += args.outputDir
 os.system(f"mkdir -p {SKIRToutputFilePath}")
 
-
-
 #########################################
 ######### Set SKIRT parameters ##########
 #########################################
