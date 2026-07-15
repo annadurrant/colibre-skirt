@@ -188,7 +188,7 @@ with h5.File(catalogue_file) as fi:
     attributes = {}
     for key in soap_dset.attrs:
         if key == "Description":
-            attributes[key] = f"Total stellar luminosity for {filter_name} (redshiftted: {redshift}), computed with SKIRT."
+            attributes[key] = f"Total stellar luminosity for {filter_name} (redshifted: {redshift}), computed with SKIRT."
         else:
             attributes[key] = soap_dset.attrs[key]
     if band_index != -1:
@@ -196,6 +196,10 @@ with h5.File(catalogue_file) as fi:
     else:
         intrinsic_luminosities = np.zeros_like(soap_dset[()][:,0])
 fi.close()
+
+# with h5.File(output_filepath, "r") as fi:
+#     intrinsic_luminosities = fi[f"{group_name}/Intrinsic{filter_name}Luminosity"][()]
+# fi.close()
 
 # Create arrays to store results
 attenuated_luminosities = np.copy(intrinsic_luminosities)
