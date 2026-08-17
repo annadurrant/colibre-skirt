@@ -27,7 +27,7 @@ parser.add_argument(
 parser.add_argument(
     "snap",
     type=int,
-    help="<Required> Snapshot number.",
+    help="Snapshot number.",
 )
 
 parser.add_argument(

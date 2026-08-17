@@ -34,10 +34,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--snaps",
+    "snap",
     type=int,
-    nargs="+",
-    help="<Required> Snapshot number(s).",
+    help="Snapshot number.",
 )
 
 parser.add_argument(
@@ -237,80 +236,79 @@ def analysis(sg, halo_ID, snap):
 
     return None
 
+snap = args.snap
 
-for snap in args.snaps:
+startTime = datetime.now()
 
-    startTime = datetime.now()
+catalogue_file = params["InputFilepaths"]["catalogueFile"].format(simPath=simPath,snap_nr=snap)
+virtual_snapshot_file = params["InputFilepaths"]["virtualSnapshotFile"].format(simPath=simPath,snap_nr=snap)
 
-    catalogue_file = params["InputFilepaths"]["catalogueFile"].format(simPath=simPath,snap_nr=snap)
-    virtual_snapshot_file = params["InputFilepaths"]["virtualSnapshotFile"].format(simPath=simPath,snap_nr=snap)
+catalogue = load_snapshot(catalogue_file)
 
-    catalogue = load_snapshot(catalogue_file)
+halo_IDs_all = catalogue.input_halos.halo_catalogue_index.value
 
-    halo_IDs_all = catalogue.input_halos.halo_catalogue_index.value
+if args.distr != -1:
+    sampleFile = sampleFolder + "/sample_" + str(snap) + "/sample_" + str(snap) + "." + str(args.distr) + ".txt"
+else:
+    sampleFile = sampleFolder + "/sample_" + str(snap) + ".txt"
 
-    if args.distr != -1:
-        sampleFile = sampleFolder + "/sample_" + str(snap) + "/sample_" + str(snap) + "." + str(args.distr) + ".txt"
-    else:
-        sampleFile = sampleFolder + "/sample_" + str(snap) + ".txt"
+halo_IDs = np.loadtxt(sampleFile, usecols = 0)
+halo_IDs = halo_IDs.astype(int)
+
+SEL = np.isin(halo_IDs_all, halo_IDs)
+
+# In case the halo IDs from the sample .txt file are sorted differently for some reason,
+# take care of that here by resorting the halo IDs.
+indices = np.array([list(halo_IDs).index(i) for i in halo_IDs_all[SEL]])
+halo_IDs = halo_IDs[indices] # Re-sort halo IDs from the sample file to match the COLIBRE halo ordering
+
+halo_indices = np.where(SEL)[0]
+
+print(len(halo_IDs), "galaxies in snapshot", snap, "selected.")
+
+soap = SOAP(catalogue_file, soap_index = halo_indices)
+
+preload_fields = {"stars.coordinates", "stars.smoothing_lengths", "stars.metal_mass_fractions", "stars.initial_masses", "stars.ages",
+                "stars.birth_densities", "stars.masses",
+                "gas.coordinates", "gas.smoothing_lengths", "gas.temperatures", "gas.densities", "gas.masses", "gas.metal_mass_fractions",
+                "gas.star_formation_rates", "gas.averaged_star_formation_rates",
+                "gas.dust_mass_fractions.GraphiteLarge", "gas.dust_mass_fractions.MgSilicatesLarge", "gas.dust_mass_fractions.FeSilicatesLarge",
+                "gas.dust_mass_fractions.GraphiteSmall", "gas.dust_mass_fractions.MgSilicatesSmall", "gas.dust_mass_fractions.FeSilicatesSmall"}
+
+if os.path.exists(virtual_snapshot_file):
+    sgs = SWIFTGalaxies(
+        virtual_snapshot_file,
+        SOAP(
+            catalogue_file,
+            soap_index=halo_indices,
+        ),
+        preload=preload_fields,
+    )
+    add_mem = False
+
+else: 
+    # virtual snapshot does not exist 
+    # run SWIFTGalaxies without membership information first
     
-    halo_IDs = np.loadtxt(sampleFile, usecols = 0)
-    halo_IDs = halo_IDs.astype(int)
+    snapshot_file = params["InputFilepaths"]["snapshotFile"].format(simPath=simPath,snap_nr=snap)
+    membership_file = params["InputFilepaths"]["membershipFile"].format(simPath=simPath,snap_nr=snap)
+    
+    sgs = SWIFTGalaxies(
+        snapshot_file,
+        SOAP(
+            catalogue_file,
+            soap_index=halo_indices,
+            extra_mask=None,
+        ),
+        preload=preload_fields,
+    )
+    add_mem = True
 
-    SEL = np.isin(halo_IDs_all, halo_IDs)
+    # and then add membership information
+    for sg in sgs:
+        attach_membership_info_to_sg_and_mask(sg, membership_file)
 
-    # In case the halo IDs from the sample .txt file are sorted differently for some reason,
-    # take care of that here by resorting the halo IDs.
-    indices = np.array([list(halo_IDs).index(i) for i in halo_IDs_all[SEL]])
-    halo_IDs = halo_IDs[indices] # Re-sort halo IDs from the sample file to match the COLIBRE halo ordering
+# map accepts arguments `args` and `kwargs`, passed through to function, if needed
+sgs.map(analysis, args = list(zip(halo_IDs, np.full(len(halo_IDs), snap))))
 
-    halo_indices = np.where(SEL)[0]
-
-    print(len(halo_IDs), "galaxies in snapshot", snap, "selected.")
-
-    soap = SOAP(catalogue_file, soap_index = halo_indices)
-
-    preload_fields = {"stars.coordinates", "stars.smoothing_lengths", "stars.metal_mass_fractions", "stars.initial_masses", "stars.ages",
-                    "stars.birth_densities", "stars.masses",
-                    "gas.coordinates", "gas.smoothing_lengths", "gas.temperatures", "gas.densities", "gas.masses", "gas.metal_mass_fractions",
-                    "gas.star_formation_rates", "gas.averaged_star_formation_rates",
-                    "gas.dust_mass_fractions.GraphiteLarge", "gas.dust_mass_fractions.MgSilicatesLarge", "gas.dust_mass_fractions.FeSilicatesLarge",
-                    "gas.dust_mass_fractions.GraphiteSmall", "gas.dust_mass_fractions.MgSilicatesSmall", "gas.dust_mass_fractions.FeSilicatesSmall"}
-
-    if os.path.exists(virtual_snapshot_file):
-        sgs = SWIFTGalaxies(
-            virtual_snapshot_file,
-            SOAP(
-                catalogue_file,
-                soap_index=halo_indices,
-            ),
-            preload=preload_fields,
-        )
-        add_mem = False
-
-    else: 
-        # virtual snapshot does not exist 
-        # run SWIFTGalaxies without membership information first
-        
-        snapshot_file = params["InputFilepaths"]["snapshotFile"].format(simPath=simPath,snap_nr=snap)
-        membership_file = params["InputFilepaths"]["membershipFile"].format(simPath=simPath,snap_nr=snap)
-        
-        sgs = SWIFTGalaxies(
-            snapshot_file,
-            SOAP(
-                catalogue_file,
-                soap_index=halo_indices,
-                extra_mask=None,
-            ),
-            preload=preload_fields,
-        )
-        add_mem = True
-
-        # and then add membership information
-        for sg in sgs:
-            attach_membership_info_to_sg_and_mask(sg, membership_file)
-
-    # map accepts arguments `args` and `kwargs`, passed through to function, if needed
-    sgs.map(analysis, args = list(zip(halo_IDs, np.full(len(halo_IDs), snap))))
-
-    print("Elapsed time for snapshot", snap, ":", datetime.now() - startTime)
+print("Elapsed time for snapshot", snap, ":", datetime.now() - startTime)

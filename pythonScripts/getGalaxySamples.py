@@ -21,9 +21,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--snap",
+    "snap",
     type=int,
-    help="<Required> Snapshot number.",
+    help="Snapshot number.",
 )
 
 parser.add_argument(
@@ -44,7 +44,7 @@ parser.add_argument(
     "--nchunks",
     type=int,
     default=1,
-    help="Number of chunks to split the galaxy sample into.",
+    help="Number of chunks to split the galaxy sample into (default: 1).",
 )
 
 

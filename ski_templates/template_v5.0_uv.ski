@@ -14,12 +14,12 @@
         <sourceSystem type="SourceSystem">
             <SourceSystem minWavelength="0.125 micron" maxWavelength="0.28 micron" wavelengths="0.25 micron" sourceBias="0.5">
                 <sources type="Source">
-                    <ParticleSource filename="old_stars.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="" sourceWeight="1" wavelengthBias="0.5">
+                    <ParticleSource filename="old_stars.txt" importVelocity="false" importVelocityDispersion="false" importCurrentMass="false" useColumns="x, y, z, smoothing length, initial stellar mass, metallicity, age" sourceWeight="1" wavelengthBias="0.5">
                         <smoothingKernel type="SmoothingKernel">
                             <QuarticSplineSmoothingKernel/>
                         </smoothingKernel>
                         <sedFamily type="SEDFamily">
-                            <FSPSvarIMFnebEmissionSEDFamily/>
+                            <FSPSnebEmissionSEDFamily/>
                         </sedFamily>
                         <wavelengthBiasDistribution type="WavelengthDistribution">
                             <DefaultWavelengthDistribution/>

@@ -12,6 +12,7 @@ from datetime import datetime
 import yaml
 import os
 import argparse
+import pandas as pd
 warnings.filterwarnings("ignore")
 
 parser = argparse.ArgumentParser(
@@ -25,9 +26,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--snap",
+    "snap",
     type=int,
-    help="<Required> Snapshot number.",
+    help="Snapshot number.",
 )
 
 parser.add_argument(
@@ -61,11 +62,18 @@ sampleFolder = params["OutputFilepaths"]["sampleFolder"].format(simPath=simPath,
 txtFilePath = params["OutputFilepaths"]["storeParticlesPath"].format(simPath=simPath,rotation=params["ModelParameters"]["rotation"]) # Path to the COLIBRE particle .txt files
 SKIRTinputFilePath = params["OutputFilepaths"]["SKIRTinputFilePath"].format(simPath=simPath,rotation=params["ModelParameters"]["rotation"]) # Path where the SKIRT input files will be stored
 SKIRToutputFilePath = params["OutputFilepaths"]["SKIRToutputFilePath"].format(simPath=simPath,rotation=params["ModelParameters"]["rotation"]) # Path where the SKIRT output files will be stored
-skifilename = params["InputFilepaths"]["skiFilepath"].format(skifileversion=skifileversion)
 
 os.system(f"mkdir -p {SKIRTinputFilePath}")
 
 old_stars_tmin = unyt.unyt_quantity(params["ModelParameters"]["starsMaxAge"], "Myr")
+
+snap = int(args.snap)
+redshift_list = pd.read_csv(f"{simPath}/output_list.txt").to_numpy()[:,0]
+redshift = redshift_list[int(snap)]
+
+scaleFactor = 1. / (1. + redshift) # Scale factor for the snapshot
+SKIRTboxsize0 = float(params["ModelParameters"]["SKIRTboxsize"])
+SKIRTboxsize = unyt.unyt_quantity(min(SKIRTboxsize0, SKIRTboxsize0 * 1.8 / 0.7 * scaleFactor), 'kpc') # Scale SKIRT box size akin to COLIBRE gravitational softening length, in kpc 
 
 startTime = datetime.now()
 
@@ -75,9 +83,9 @@ startTime = datetime.now()
 
 # Sample list filepath, either total list or part of distributed list
 if args.distr != -1:
-    sampleFile = sampleFolder + "/sample_" + str(snapNum) + "/sample_" + str(snapNum) + "." + str(args.distr) + ".txt"
+    sampleFile = sampleFolder + "/sample_" + str(snap) + "/sample_" + str(snap) + "." + str(args.distr) + ".txt"
 else:
-    sampleFile = sampleFolder + "/sample_" + str(snapNum) + ".txt"
+    sampleFile = sampleFolder + "/sample_" + str(snap) + ".txt"
 
 halo_IDs, Rstars, Mdusts, Rdusts = np.loadtxt(sampleFile, unpack = True, usecols = [0, 2, 3, 4])
 SigmaDusts = Mdusts / (2 * np.pi * Rdusts**2) # Dust surface density
@@ -91,9 +99,9 @@ halo_IDs = halo_IDs.astype(int)
 
 for idx, haloID in enumerate(halo_IDs):
 
-    SKIRTinputFiles = SKIRTinputFilePath + f"snap{snapNum}_ID{haloID}"
+    SKIRTinputFiles = SKIRTinputFilePath + f"snap{snap}_ID{haloID}"
 
-    if os.path.isfile(SKIRTinputFilePath + "snap" + snapNum + "_ID" + haloID + "_dust.txt") == False:
+    if os.path.isfile(SKIRTinputFilePath + f"snap{snap}_ID{haloID}" + "_dust.txt") == False:
 
         # Input files have not been generated so continue here
 
@@ -101,7 +109,7 @@ for idx, haloID in enumerate(halo_IDs):
         #
         with warnings.catch_warnings():
             warnings.simplefilter("ignore") # Ignore warning if file is empty
-            stars_file = np.atleast_2d(np.loadtxt(txtFilePath + "snap" + snapNum + "_" + "ID" + haloID + "_stars.txt"))
+            stars_file = np.atleast_2d(np.loadtxt(txtFilePath + f"snap{snap}_ID{haloID}_stars.txt"))
 
         if np.shape(stars_file) != (1, 0): # At least one star particle
 
@@ -122,7 +130,7 @@ for idx, haloID in enumerate(halo_IDs):
 
             old_stars_mask = (stars_age >= old_stars_tmin)
 
-            if vIMF == True:
+            if args.vIMF == True:
                 old_stars_params = np.transpose([stars_x, stars_y, stars_z, stars_sml, stars_M, stars_Z, stars_imf_slope, stars_age])[old_stars_mask, :]
             else:
                 old_stars_params = np.transpose([stars_x, stars_y, stars_z, stars_sml, stars_M, stars_Z, stars_age])[old_stars_mask, :]
@@ -137,7 +145,7 @@ for idx, haloID in enumerate(halo_IDs):
             old_stars_params = np.array([])
             starforming_parentGas_params = np.array([])
 
-        if vIMF == True:
+        if args.vIMF == True:
             old_stars_header = "Column 1: x (pc)\n" + \
                         "Column 2: y (pc)\n" + \
                         "Column 3: z (pc)\n" + \
@@ -163,7 +171,7 @@ for idx, haloID in enumerate(halo_IDs):
         #
         with warnings.catch_warnings():
             warnings.simplefilter("ignore") # Ignore warning if file is empty
-            gas_file = np.atleast_2d(np.loadtxt(txtFilePath + "snap" + snapNum + "_" + "ID" + haloID + "_gas.txt"))
+            gas_file = np.atleast_2d(np.loadtxt(txtFilePath + f"snap{snap}_ID{haloID}_gas.txt"))
 
         if  np.shape(gas_file) != (1, 0): # At least one gas particle
 

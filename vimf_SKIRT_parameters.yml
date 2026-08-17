@@ -1,15 +1,15 @@
 InputFilepaths:
-  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/ski_templates/vimf_template_v{skifileversion}_z.ski" # The path to the ski file
+  skiFilepath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/colibre-skirt/ski_templates/vimf_template_v{skifileversion}_uv.ski" # The path to the ski file
   simPath: "/mnt/aridata1/users/ariadurr/COLIBRE/Simulations/{simName}" # Path to COLIBRE simulation
-  catalogueFile: "{simPath}/SOAP/halo_properties_vimf_{snap_nr:04d}.hdf5"
+  catalogueFile: "{simPath}/SOAP-HBT/halo_properties_vimf_{snap_nr:04d}.hdf5"
 
   # If the snapshots are distributed
-  virtualSnapshotFile: "{simPath}/SOAP/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5"
+  virtualSnapshotFile: "{simPath}/SOAP-HBT/colibre_with_SOAP_membership_{snap_nr:04d}.hdf5"
   correctedSnapshotFile: "{simPath}/corrected-snapshots/colibre_add_{snap_nr:04d}/colibre_add_{snap_nr:04d}.0.hdf5"
 
   # If not distributed you need to provide the membership and snapshot information separately
   snapshotFile: "{simPath}/snapshots/colibre_{snap_nr:04d}.hdf5"
-  membershipFile: "{simPath}/SOAP/membership_{snap_nr:04d}.hdf5"
+  membershipFile: "{simPath}/SOAP-HBT/membership_{snap_nr:04d}.hdf5"
 
   # Filter table path for SED integration
   filterTablePath: "/mnt/aridata1/users/ariadurr/COLIBRE/Processing/Tables/Filters/"
@@ -18,8 +18,8 @@ OutputFilepaths:
   sampleFolder: "{simPath}/SKIRT/" # Folder where the galaxy sample .txt files will be stored
   storeParticlesPath: "{simPath}/SKIRT/ParticleFiles/{rotation}/" # Folder where the COLIBRE particle .txt files will be stored
   SKIRTinputFilePath: "{simPath}/SKIRT/InputFiles/{rotation}/" # Path where the SKIRT input files will be stored
-  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles_optical_z/" # Path where the SKIRT output files will be stored
-  GalaxyLuminositiesFilepath: "{simPath}/SOAP/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
+  SKIRToutputFilePath: "{simPath}/SKIRT/OutputFiles/" # Path where the SKIRT output files will be stored
+  GalaxyLuminositiesFilepath: "{simPath}/SOAP-HBT/SKIRT_halo_luminosities_{snap_nr:04d}.hdf5"
 
 SelectionCriteria:
   minStellarMass: 1.0e4 # Lower stellar mass limit for halo selection in Msun
@@ -29,6 +29,6 @@ SelectionCriteria:
 ModelParameters:
   SKIRTboxsize: 100 # in kpc
   starsMaxAge: 0 # in Myr, stars younger than this age are modelled from SF gas. This must match TODDLERS SFR period.
-  photonPackets: 2e5 # Number of photon packets
+  photonPackets: 1e5 # Number of photon packets
   binTreeMaxLevel: 36 # Max refinement level of the spatial grid
   rotation: "None" # Option to rotate galaxy based on the angular momentum vector of stars

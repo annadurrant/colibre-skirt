@@ -27,9 +27,9 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--snap",
+    "snap",
     type=int,
-    help="<Required> Snapshot number.",
+    help="Snapshot number.",
 )
 
 parser.add_argument(
@@ -65,9 +65,9 @@ SKIRTinputFilePath = params["OutputFilepaths"]["SKIRTinputFilePath"].format(simP
 SKIRToutputFilePath = params["OutputFilepaths"]["SKIRToutputFilePath"].format(simPath=simPath,rotation=params["ModelParameters"]["rotation"]) # Path where the SKIRT output files will be stored
 skifilename = params["InputFilepaths"]["skiFilepath"].format(skifileversion=skifileversion)
 
-snapNum = int(args.snap)
+snap = int(args.snap)
 redshift_list = pd.read_csv(f"{simPath}/output_list.txt").to_numpy()[:,0]
-redshift = redshift_list[int(snapNum)]
+redshift = redshift_list[int(snap)]
 
 #########################################
 ######### Make output directories #######
@@ -101,9 +101,9 @@ startTime = datetime.now()
 
 # Sample list filepath, either total list or part of distributed list
 if args.distr != -1:
-    sampleFile = sampleFolder + "/sample_" + str(snapNum) + "/sample_" + str(snapNum) + "." + str(args.distr) + ".txt"
+    sampleFile = sampleFolder + "/sample_" + str(snap) + "/sample_" + str(snap) + "." + str(args.distr) + ".txt"
 else:
-    sampleFile = sampleFolder + "/sample_" + str(snapNum) + ".txt"
+    sampleFile = sampleFolder + "/sample_" + str(snap) + ".txt"
 
 halo_IDs, Rstars, Mdusts, Rdusts = np.loadtxt(sampleFile, unpack = True, usecols = [0, 2, 3, 4])
 SigmaDusts = Mdusts / (2 * np.pi * Rdusts**2) # Dust surface density
@@ -117,17 +117,14 @@ halo_IDs = halo_IDs.astype(int)
 
 for idx, haloID in enumerate(halo_IDs):
 
-    SKIRTinputFiles = SKIRTinputFilePath + f"snap{snapNum}_ID{haloID}"
-    skifilename_halo = f"snap{snapNum}_ID{haloID}.ski"
+    SKIRTinputFiles = SKIRTinputFilePath + f"snap{snap}_ID{haloID}"
+    skifilename_halo = f"snap{snap}_ID{haloID}.ski"
 
     if os.path.isfile(skifilename_halo):
         # if .ski file already exists, do not replace
         continue
     
     else:
-
-        if idx%500 == 0:
-            print(f"Running {idx}th halo in subset.",flush=True)
 
         Rstar, SigmaDust = Rstars[idx], SigmaDusts[idx] # in kpc, Msun/kpc**2
         
@@ -169,4 +166,4 @@ for idx, haloID in enumerate(halo_IDs):
         with open(skifilename_halo, "w") as f:
             f.write(text)
             
-print(f"Elapsed time to save SKIRT input files and .ski files for snap {snapNum}:", datetime.now() - startTime)
+print(f"Elapsed time to generate ski files for snap {snap}:", datetime.now() - startTime)
